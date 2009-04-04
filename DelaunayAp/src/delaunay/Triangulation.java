@@ -20,6 +20,14 @@ package delaunay;
  * DEALINGS IN THE SOFTWARE.
  */
 
+/*
+ * Changelog
+ *
+ * DATE         AUTHOR          DESCRIPTION
+ * 04/04/2009   M. Deckard      Added initTri and isOnBoundary() so graph
+ *                              can hide edges to surrounding triangle.
+ */
+
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -52,6 +60,7 @@ public class Triangulation extends AbstractSet<Triangle> {
 
     private Triangle mostRecent = null;      // Most recently "active" triangle
     private Graph<Triangle> triGraph;        // Holds triangles for navigation
+    private Triangle initTri = null;         // Initial triangle
 
     /**
      * All sites must fall within the initial triangle.
@@ -61,6 +70,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         triGraph = new Graph<Triangle>();
         triGraph.add(triangle);
         mostRecent = triangle;
+        initTri = triangle;
     }
 
     /* The following two methods are required by AbstractSet */
@@ -260,6 +270,22 @@ public class Triangulation extends AbstractSet<Triangle> {
 
         // Return one of the new triangles
         return newTriangles.iterator().next();
+    }
+
+    /**
+     * Returns true if one of triangle's vertices is on the initial triangle.
+     * @param triangle query triangle
+     * @return true iff triangle contains a boundary vertex
+     */
+    public boolean isOnBoundary (Triangle triangle)
+    {
+       for (Pnt vertex: triangle) {
+           for (Pnt boundary: initTri) {
+               if (boundary.equals(vertex))
+                   return true;
+           }
+       }
+       return false;
     }
 
     /**
