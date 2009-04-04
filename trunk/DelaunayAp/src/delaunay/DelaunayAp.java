@@ -20,6 +20,14 @@ package delaunay;
  * DEALINGS IN THE SOFTWARE.
  */
 
+/*
+ * Changelog
+ *
+ * DATE         AUTHOR          DESCRIPTION
+ * 04/04/2009   M. Deckard      Modified drawAllDelaunay() to draw vertices
+ *                              and to hide edges to surrounding triangle.
+ */
+
 import java.awt.*;
 import java.awt.event.*;
 import java.util.HashMap;
@@ -49,7 +57,7 @@ import javax.swing.*;
 public class DelaunayAp extends javax.swing.JApplet
         implements Runnable, ActionListener, MouseListener {
 
-    private boolean debug = false;             // Used for debugging
+    private boolean debug = true;             // Used for debugging
     private Component currentSwitch = null;    // Entry-switch that mouse is in
 
     private static String windowTitle = "Voronoi/Delaunay Window";
@@ -358,13 +366,13 @@ class DelaunayPanel extends JPanel {
         // Draw the appropriate picture
         if (controller.isVoronoi())
             drawAllVoronoi(controller.isColorful(), true);
-        else drawAllDelaunay(controller.isColorful());
+        else drawAllDelaunay(controller.isColorful(), true);
 
         // Draw any extra info due to the mouse-entry switches
         temp = g.getColor();
         g.setColor(Color.white);
         if (controller.showingCircles()) drawAllCircles();
-        if (controller.showingDelaunay()) drawAllDelaunay(false);
+        if (controller.showingDelaunay()) drawAllDelaunay(false, false);
         if (controller.showingVoronoi()) drawAllVoronoi(false, false);
         g.setColor(temp);
     }
@@ -373,10 +381,24 @@ class DelaunayPanel extends JPanel {
      * Draw all the Delaunay triangles.
      * @param withFill true iff drawing Delaunay triangles with fill colors
      */
-    public void drawAllDelaunay (boolean withFill) {
+    public void drawAllDelaunay (boolean withFill, boolean withSites) {
+        // Keep track of sites done; no drawing for initial triangles sites
+        HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
+
         for (Triangle triangle : dt) {
-            Pnt[] vertices = triangle.toArray(new Pnt[0]);
-            draw(vertices, withFill? getColor(triangle) : null);
+            if (! dt.isOnBoundary(triangle)) {
+                Pnt[] vertices = triangle.toArray(new Pnt[0]);
+                draw(vertices, withFill? getColor(triangle) : null);
+            }
+
+            if (withSites)
+            {
+               for (Pnt site: triangle) {
+                    if (done.contains(site)) continue;
+                    done.add(site);
+                    draw(site);
+                }
+            }
         }
     }
 
