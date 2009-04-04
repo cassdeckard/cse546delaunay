@@ -386,7 +386,7 @@ class DelaunayPanel extends JPanel {
         HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
 
         for (Triangle triangle : dt) {
-            if (! dt.isOnBoundary(triangle)) {
+            if (! triangle.containsAny(initialTriangle)) {
                 Pnt[] vertices = triangle.toArray(new Pnt[0]);
                 draw(vertices, withFill? getColor(triangle) : null);
             }
