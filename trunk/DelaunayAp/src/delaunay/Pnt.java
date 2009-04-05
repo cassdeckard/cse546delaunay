@@ -33,6 +33,15 @@ package delaunay;
  *
  * Modified Novemeber 2007.  Minor clean up.
  */
+
+/*
+ * Changelog
+ *
+ * DATE         AUTHOR          DESCRIPTION
+ * 04/05/2009   M. Deckard      Added functions for Gabriel graph support:
+ *                              distance, midpoint, inCircle
+ */
+
 public class Pnt {
 
     private double[] coordinates;          // The point's coordinates
@@ -135,6 +144,18 @@ public class Pnt {
     }
 
     /**
+     * Distance to another point.
+     * @param point the other Pnt
+     * @return the Euclidean distance of the vector from this to point
+     * @throws IllegalArgumentException if dimension fail to match
+     */
+    public double distance (Pnt point) {
+        dimCheck(point);
+        Pnt distVector = this.subtract(point);
+        return Math.sqrt(distVector.dot(distVector));
+    }
+
+    /**
      * Magnitude (as a vector).
      * @return the Euclidean length of this vector
      */
@@ -175,6 +196,22 @@ public class Pnt {
      */
     public double angle (Pnt p) {
         return Math.acos(this.dot(p) / (this.magnitude() * p.magnitude()));
+    }
+
+    /**
+     * Midpoint of two Pnts.
+     * Works in any dimension.
+     * @param point the other point
+     * @return the coefficients of the midpoint
+     * @throws IllegalArgumentException if dimensions fail to match
+     */
+    public Pnt midpoint (Pnt point) {
+        int len = dimCheck(point);
+        Pnt addPnt = this.add(point);
+        double[] coords = new double[len];
+        for (int i = 0; i < len; i++)
+            coords[i] = addPnt.coordinates[i] / 2;
+        return new Pnt(coords);
     }
 
     /**
@@ -389,6 +426,20 @@ public class Pnt {
             else if (result[i] > 0) return null;
         }
         return witness;
+    }
+
+    /**
+     * Test if this Pnt is inside a circle.
+     * Works in any dimension.
+     * @param center the center of the circle.
+     * @param radius the radius of the circle.
+     * @return true iff this Pnt is inside the circle.
+     * @throws IllegalArgumentException if dimensions fail to match
+     */
+    public boolean inCircle (Pnt center, double radius) {
+        dimCheck(center);
+        double distance = this.distance(center);
+        return (distance < radius);
     }
 
     /**
