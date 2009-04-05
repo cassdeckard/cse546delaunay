@@ -48,10 +48,20 @@ import java.util.Set;
  * explicitly creating a cavity.  Added code needed to find a Voronoi cell.
  *
  */
+
+/*
+ * Changelog
+ *
+ * DATE         AUTHOR          DESCRIPTION
+ * 04/05/2009   M. Deckard      Added support for Gabriel graphs
+ */
+
 public class Triangulation extends AbstractSet<Triangle> {
 
+    private boolean debug = true;            // Used for debugging
     private Triangle mostRecent = null;      // Most recently "active" triangle
     private Graph<Triangle> triGraph;        // Holds triangles for navigation
+    private Graph<Pnt> gabrielGraph;         // Holds points in Gabriel graph
 
     /**
      * All sites must fall within the initial triangle.
@@ -61,6 +71,16 @@ public class Triangulation extends AbstractSet<Triangle> {
         triGraph = new Graph<Triangle>();
         triGraph.add(triangle);
         mostRecent = triangle;
+
+        // Gabriel init
+        gabrielGraph = new Graph<Pnt>();
+        for (Pnt vertex: triangle) {
+            gabrielGraph.add(vertex);
+            for (Pnt vertex2: triangle) {
+                gabrielGraph.add(vertex2);
+                gabrielGraph.add(vertex, vertex2);
+            }
+        }
     }
 
     /* The following two methods are required by AbstractSet */
@@ -135,6 +155,15 @@ public class Triangulation extends AbstractSet<Triangle> {
             if (triangle == start) break;
         }
         return list;
+    }
+
+    /**
+     * Returns true iff the Gabriel graph has an edge between site1 and site2
+     * @param site1 first point
+     * @param site2 second point
+     */
+    public boolean gabrielEdge (Pnt site1, Pnt site2) {
+        return gabrielGraph.areNeighbors(site1, site2);
     }
 
     /**
@@ -226,6 +255,7 @@ public class Triangulation extends AbstractSet<Triangle> {
      */
     private Triangle update (Pnt site, Set<Triangle> cavity) {
         Set<Set<Pnt>> boundary = new HashSet<Set<Pnt>>();
+        Set<Pnt> boundaryPoints = new HashSet<Pnt>();
         Set<Triangle> theTriangles = new HashSet<Triangle>();
 
         // Find boundary facets and adjacent triangles
@@ -233,14 +263,54 @@ public class Triangulation extends AbstractSet<Triangle> {
             theTriangles.addAll(neighbors(triangle));
             for (Pnt vertex: triangle) {
                 Set<Pnt> facet = triangle.facetOpposite(vertex);
-                if (boundary.contains(facet)) boundary.remove(facet);
-                else boundary.add(facet);
+                if (boundary.contains(facet)) {
+                    boundary.remove(facet);
+
+                    // remove inner edge from Gabriel graph
+                    Pnt[] toRemove = facet.toArray(new Pnt[0]);
+                    if (debug) System.out.println("Gabriel: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
+                    gabrielGraph.remove(toRemove[0], toRemove[1]);
+                }
+                else {
+                    Pnt[] toAdd = facet.toArray(new Pnt[0]);
+                    boundaryPoints.add(toAdd[0]);
+                    boundaryPoints.add(toAdd[1]);
+                    boundary.add(facet);
+                }
             }
         }
         theTriangles.removeAll(cavity);        // Adj triangles only
 
         // Remove the cavity triangles from the triangulation
         for (Triangle triangle: cavity) triGraph.remove(triangle);
+
+        // Determine if new point invalidates any current Gabriel edges
+        Pnt point = mostRecent.getVertexButNot(); // get some point
+        Set<Pnt[]> removeGabriel = new HashSet<Pnt[]>();
+        Queue<Pnt> toBeChecked = new LinkedList<Pnt>();
+        Set<Pnt> visited = new HashSet<Pnt>();
+        toBeChecked.add(point);
+        while (!toBeChecked.isEmpty()) {
+            point = toBeChecked.remove();
+            if (visited.contains(point)) continue;
+            Set<Pnt> neighbors = gabrielGraph.neighbors(point);
+            for (Pnt neighbor: neighbors) {
+                if (visited.contains(neighbor)) continue;
+                toBeChecked.add(neighbor);
+                Pnt c = point.midpoint(neighbor);
+                double radius = point.distance(neighbor) / 2;
+                if (site.inCircle(c, radius)) {
+                    // site obstructs this edge - remove it
+                    removeGabriel.add(new Pnt[] {point, neighbor});
+                }
+            }
+            visited.add(point);
+        }
+        // Remove invalidated edges
+        for (Pnt[] toRemove: removeGabriel){
+            if (debug) System.out.println( "Gabriel: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
+            gabrielGraph.remove(toRemove[0], toRemove[1]);
+        }
 
         // Build each new triangle and add it to the triangulation
         Set<Triangle> newTriangles = new HashSet<Triangle>();
@@ -249,6 +319,30 @@ public class Triangulation extends AbstractSet<Triangle> {
             Triangle tri = new Triangle(vertices);
             triGraph.add(tri);
             newTriangles.add(tri);
+        }
+
+        // Add new site to Gabriel graph
+        gabrielGraph.add(site);
+
+        // Determine if we need to add edges to Gabriel graph
+        // by checking to see if any existing points lie in the Gabriel
+        // circles of the new Delaunay edges
+        Set<Pnt> allPoints = gabrielGraph.nodeSet();
+        Set<Pnt> newPoints = new HashSet<Pnt>();
+        for (Pnt onBoundary: boundaryPoints) {
+            newPoints.add(onBoundary);
+            Pnt c = onBoundary.midpoint(site);
+            double radius = onBoundary.distance(site) / 2;
+            for (Pnt toCheck : allPoints) {
+                if (toCheck.inCircle(c, radius)){
+                    newPoints.remove(onBoundary);
+                    continue;
+                }
+            }
+        }
+        for (Pnt toAdd : newPoints) {
+            if (debug) System.out.println( "Gabriel: adding " + site.toString() + ", " + toAdd.toString());
+            gabrielGraph.add(site, toAdd);
         }
 
         // Update the graph links for each new triangle

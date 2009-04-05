@@ -20,6 +20,14 @@ package delaunay;
  * DEALINGS IN THE SOFTWARE.
  */
 
+/*
+ * Changelog
+ *
+ * DATE         AUTHOR          DESCRIPTION
+ * 04/05/2009   M. Deckard      Added areNeighbors function for Gabriel graph
+ *                              support.
+ */
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -93,6 +101,18 @@ public class Graph<N> {
      */
     public Set<N> neighbors (N node) throws NullPointerException {
         return Collections.unmodifiableSet(theNeighbors.get(node));
+    }
+
+    /**
+     * Returns true iff nodes are neighbors
+     * @param node1 first node
+     * @param node2 second node
+     * @return true iff node1 and node2 are neighbors
+     * @throws NullPointerException if node does not appear in graph
+     */
+    public boolean areNeighbors (N node1, N node2) throws NullPointerException {
+        return (theNeighbors.get(node1).contains(node2) &&
+                theNeighbors.get(node2).contains(node1));
     }
 
     /**

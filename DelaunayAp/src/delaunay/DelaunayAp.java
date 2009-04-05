@@ -26,6 +26,7 @@ package delaunay;
  * DATE         AUTHOR          DESCRIPTION
  * 04/04/2009   M. Deckard      Modified drawAllDelaunay() to draw vertices
  *                              and to hide edges to surrounding triangle.
+ * 04/05/2009   M. Deckard      Added support for Gabriel graphs
  */
 
 import java.awt.*;
@@ -69,9 +70,11 @@ public class DelaunayAp extends javax.swing.JApplet
     private JButton clearButton = new JButton("Clear");
     private JCheckBox colorfulBox = new JCheckBox("More Colorful");
     private DelaunayPanel delaunayPanel = new DelaunayPanel(this);
-    private JLabel circleSwitch = new JLabel("Show Empty Circles");
+    private JLabel circleSwitch = new JLabel("Show Delaunay Circles");
     private JLabel delaunaySwitch = new JLabel("Show Delaunay Edges");
+    private JLabel gabrielSwitch = new JLabel("Show Gabriel Edges");
     private JLabel voronoiSwitch = new JLabel("Show Voronoi Edges");
+    private JLabel gabrielCircleSwitch = new JLabel("Show Gabriel Circles");
 
     /**
      * Main program (used when run as application instead of applet).
@@ -123,7 +126,11 @@ public class DelaunayAp extends javax.swing.JApplet
 
         // Add the mouse-entry switches
         JPanel switchPanel = new JPanel();
+        switchPanel.add(gabrielCircleSwitch);
+        switchPanel.add(new Label("     "));            // Spacing
         switchPanel.add(circleSwitch);
+        switchPanel.add(new Label("     "));            // Spacing
+        switchPanel.add(gabrielSwitch);
         switchPanel.add(new Label("     "));            // Spacing
         switchPanel.add(delaunaySwitch);
         switchPanel.add(new Label("     "));            // Spacing
@@ -141,7 +148,9 @@ public class DelaunayAp extends javax.swing.JApplet
         clearButton.addActionListener(this);
         colorfulBox.addActionListener(this);
         delaunayPanel.addMouseListener(this);
+        gabrielCircleSwitch.addMouseListener(this);
         circleSwitch.addMouseListener(this);
+        gabrielSwitch.addMouseListener(this);
         delaunaySwitch.addMouseListener(this);
         voronoiSwitch.addMouseListener(this);
 
@@ -182,7 +191,11 @@ public class DelaunayAp extends javax.swing.JApplet
     public void mousePressed(MouseEvent e) {
         if (e.getSource() != delaunayPanel) return;
         Pnt point = new Pnt(e.getX(), e.getY());
-        if (debug ) System.out.println("Click " + point);
+        if (debug ) {
+            System.out.println("===============");
+            System.out.println("Click " + point);
+            System.out.println("===============");
+        }
         delaunayPanel.addSite(point);
         delaunayPanel.repaint();
     }
@@ -208,10 +221,38 @@ public class DelaunayAp extends javax.swing.JApplet
     }
 
     /**
+     * @return true iff doing Delaunay triangulation.
+     */
+    public boolean isDelaunay() {
+        return delaunayButton.isSelected();
+    }
+
+    /**
+     * @return true iff doing Gabriel graph.
+     */
+    public boolean isGabriel() {
+        return ggButton.isSelected();
+    }
+
+    /**
+     * @return true iff within Gabriel circle switch
+     */
+    public boolean showingGabrielCircles() {
+        return currentSwitch == gabrielCircleSwitch;
+    }
+
+    /**
      * @return true iff within circle switch
      */
     public boolean showingCircles() {
         return currentSwitch == circleSwitch;
+    }
+
+    /**
+     * @return true iff within Gabriel switch
+     */
+    public boolean showingGabriel() {
+        return currentSwitch == gabrielSwitch;
     }
 
     /**
@@ -366,12 +407,17 @@ class DelaunayPanel extends JPanel {
         // Draw the appropriate picture
         if (controller.isVoronoi())
             drawAllVoronoi(controller.isColorful(), true);
-        else drawAllDelaunay(controller.isColorful(), true);
+        else if (controller.isDelaunay())
+            drawAllDelaunay(controller.isColorful(), true);
+        else if (controller.isGabriel())
+            drawAllGabriel(true);
 
         // Draw any extra info due to the mouse-entry switches
         temp = g.getColor();
         g.setColor(Color.white);
+        if (controller.showingGabrielCircles()) drawAllGabrielCircles();
         if (controller.showingCircles()) drawAllCircles();
+        if (controller.showingGabriel()) drawAllGabriel(false);
         if (controller.showingDelaunay()) drawAllDelaunay(false, false);
         if (controller.showingVoronoi()) drawAllVoronoi(false, false);
         g.setColor(temp);
@@ -410,6 +456,7 @@ class DelaunayPanel extends JPanel {
     public void drawAllVoronoi (boolean withFill, boolean withSites) {
         // Keep track of sites done; no drawing for initial triangles sites
         HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
+
         for (Triangle triangle : dt)
             for (Pnt site: triangle) {
                 if (done.contains(site)) continue;
@@ -422,6 +469,75 @@ class DelaunayPanel extends JPanel {
                 draw(vertices, withFill? getColor(site) : null);
                 if (withSites) draw(site);
             }
+    }
+
+    /**
+     * Draw all the Gabriel edges.
+     * @param withSites true iff drawing the site for each point
+     */
+    public void drawAllGabriel (boolean withSites) {
+        /*
+         * NOTE: This currently does double processing it needs to, processing
+         * every edge twice: one for each triangle the edge is on.
+         */
+
+        // Loop through all triangles of the DT
+        for (Triangle triangle: dt) {
+
+            // Keep track of sites done; no drawing for initial triangles sites
+            HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
+
+            for (Pnt site: triangle) {
+                if (done.contains(site)) continue;
+                done.add(site);
+                draw(site);
+                Pnt site2 = triangle.getVertexButNot(site); // get another vertex
+                if ( dt.gabrielEdge(site, site2) && ! done.contains(site2)) {
+                    Pnt[] vertices = { site, site2 };
+                    draw(vertices, null);
+                }
+                Pnt site3 = triangle.getVertexButNot(site, site2); // get another vertex
+                if ( dt.gabrielEdge(site, site3) && ! done.contains(site3)) {
+                    Pnt[] vertices = { site, site3 };
+                    draw(vertices, null);
+                }
+            }
+        }
+    }
+
+    /**
+     * Draw all the empty circles (one for each pair of points) of the Gabriel graph.
+     */
+    public void drawAllGabrielCircles () {
+        /*
+         * NOTE: This currently does double processing it needs to, processing
+         * every edge twice: one for each triangle the edge is on.
+         */
+
+        // Loop through all triangles of the DT
+        for (Triangle triangle: dt) {
+            // Skip circles involving the initial-triangle vertices
+            if (triangle.containsAny(initialTriangle)) continue;
+
+            // Keep track of sites done; no drawing for initial triangles sites
+            HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
+
+            for (Pnt site: triangle) {
+                done.add(site);
+                Pnt site2 = triangle.getVertexButNot(site); // get another vertex
+                if ( dt.gabrielEdge(site, site2) && ! done.contains(site2)) {
+                    Pnt c = site.midpoint(site2);
+                    double radius = site.distance(site2) / 2;
+                    draw(c, radius, null);
+                }
+                Pnt site3 = triangle.getVertexButNot(site, site2); // get another vertex
+                if ( dt.gabrielEdge(site, site3) && ! done.contains(site3)) {
+                    Pnt c = site.midpoint(site3);
+                    double radius = site.distance(site3) / 2;
+                    draw(c, radius, null);
+                }
+            }
+        }
     }
 
     /**
