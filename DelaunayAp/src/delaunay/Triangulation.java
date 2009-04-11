@@ -54,14 +54,17 @@ import java.util.Set;
  *
  * DATE         AUTHOR          DESCRIPTION
  * 04/05/2009   M. Deckard      Added support for Gabriel graphs
+ * 04/11/2009   M. Deckard      Added support for RNGs
  */
 
 public class Triangulation extends AbstractSet<Triangle> {
 
-    private boolean debug = true;            // Used for debugging
+    private boolean ggDebug = false;          // Output debug for Gabriel graphs
+    private boolean rngDebug = true;         // Output debug for RNGs
     private Triangle mostRecent = null;      // Most recently "active" triangle
     private Graph<Triangle> triGraph;        // Holds triangles for navigation
     private Graph<Pnt> gabrielGraph;         // Holds points in Gabriel graph
+    private Graph<Pnt> rnGraph;              // Holds points in RNG
 
     /**
      * All sites must fall within the initial triangle.
@@ -79,6 +82,16 @@ public class Triangulation extends AbstractSet<Triangle> {
             for (Pnt vertex2: triangle) {
                 gabrielGraph.add(vertex2);
                 gabrielGraph.add(vertex, vertex2);
+            }
+        }
+
+        // RNG init
+        rnGraph = new Graph<Pnt>();
+        for (Pnt vertex: triangle) {
+            rnGraph.add(vertex);
+            for (Pnt vertex2: triangle) {
+                rnGraph.add(vertex2);
+                rnGraph.add(vertex, vertex2);
             }
         }
     }
@@ -164,6 +177,15 @@ public class Triangulation extends AbstractSet<Triangle> {
      */
     public boolean gabrielEdge (Pnt site1, Pnt site2) {
         return gabrielGraph.areNeighbors(site1, site2);
+    }
+
+    /**
+     * Returns true iff the RNG has an edge between site1 and site2
+     * @param site1 first point
+     * @param site2 second point
+     */
+    public boolean rngEdge (Pnt site1, Pnt site2) {
+        return rnGraph.areNeighbors(site1, site2);
     }
 
     /**
@@ -266,10 +288,13 @@ public class Triangulation extends AbstractSet<Triangle> {
                 if (boundary.contains(facet)) {
                     boundary.remove(facet);
 
-                    // remove inner edge from Gabriel graph
+                    // remove inner edge from Gabriel graph, RNG
                     Pnt[] toRemove = facet.toArray(new Pnt[0]);
-                    if (debug) System.out.println("Gabriel: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
+                    if (ggDebug) System.out.println("Gabriel: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
+                    if (rngDebug) System.out.println("RNG: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
                     gabrielGraph.remove(toRemove[0], toRemove[1]);
+                    rnGraph.remove(toRemove[0], toRemove[1]);
+
                 }
                 else {
                     Pnt[] toAdd = facet.toArray(new Pnt[0]);
@@ -297,6 +322,7 @@ public class Triangulation extends AbstractSet<Triangle> {
             for (Pnt neighbor: neighbors) {
                 if (visited.contains(neighbor)) continue;
                 toBeChecked.add(neighbor);
+
                 Pnt c = point.midpoint(neighbor);
                 double radius = point.distance(neighbor) / 2;
                 if (site.inCircle(c, radius)) {
@@ -306,10 +332,39 @@ public class Triangulation extends AbstractSet<Triangle> {
             }
             visited.add(point);
         }
-        // Remove invalidated edges
+        // Remove invalidated Gabriel edges
         for (Pnt[] toRemove: removeGabriel){
-            if (debug) System.out.println( "Gabriel: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
+            if (ggDebug) System.out.println( "Gabriel: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
             gabrielGraph.remove(toRemove[0], toRemove[1]);
+        }
+
+        // Determine if new point invalidates any current Gabriel edges
+        Set<Pnt[]> removeRNG = new HashSet<Pnt[]>();
+        toBeChecked.clear();
+        visited.clear();
+        toBeChecked.add(point);
+        while (!toBeChecked.isEmpty()) {
+            point = toBeChecked.remove();
+            if (visited.contains(point)) continue;
+            Set<Pnt> neighbors = rnGraph.neighbors(point);
+            for (Pnt neighbor: neighbors) {
+                if (visited.contains(neighbor)) continue;
+                toBeChecked.add(neighbor);
+
+                Pnt c = point.midpoint(neighbor);
+                double distance = point.distance(neighbor);
+                if (site.inCircle(neighbor, distance) &&
+                    site.inCircle(point, distance)) {
+                    // site obstructs this edge - remove it
+                    removeRNG.add(new Pnt[] {point, neighbor});
+                }
+            }
+            visited.add(point);
+        }
+        // Remove invalidated RNG edges
+        for (Pnt[] toRemove: removeRNG){
+            if (rngDebug) System.out.println( "RNG: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
+            rnGraph.remove(toRemove[0], toRemove[1]);
         }
 
         // Build each new triangle and add it to the triangulation
@@ -321,28 +376,49 @@ public class Triangulation extends AbstractSet<Triangle> {
             newTriangles.add(tri);
         }
 
-        // Add new site to Gabriel graph
+        // Add new site to Gabriel graph, RNG
         gabrielGraph.add(site);
+        rnGraph.add(site);
 
-        // Determine if we need to add edges to Gabriel graph
+        // Determine if we need to add edges to Gabriel graph, RNG
         // by checking to see if any existing points lie in the Gabriel
-        // circles of the new Delaunay edges
+        // circles or RNG circle intersections of the new Delaunay edges
         Set<Pnt> allPoints = gabrielGraph.nodeSet();
-        Set<Pnt> newPoints = new HashSet<Pnt>();
+        Set<Pnt> newGabrielPoints = new HashSet<Pnt>();
+        Set<Pnt> newRNGPoints = new HashSet<Pnt>();
         for (Pnt onBoundary: boundaryPoints) {
-            newPoints.add(onBoundary);
+            newGabrielPoints.add(onBoundary);
+            newRNGPoints.add(onBoundary);
+
+            // Check GG
             Pnt c = onBoundary.midpoint(site);
-            double radius = onBoundary.distance(site) / 2;
+            double distance = onBoundary.distance(site);
+            double radius = distance / 2;
             for (Pnt toCheck : allPoints) {
                 if (toCheck.inCircle(c, radius)){
-                    newPoints.remove(onBoundary);
+                    newGabrielPoints.remove(onBoundary);
+                    continue;
+                }
+            }
+
+            // Check RNG
+            for (Pnt toCheck : allPoints) {
+                if (toCheck.inCircle(site, distance) &&
+                    toCheck.inCircle(onBoundary, distance)) {
+                    newRNGPoints.remove(onBoundary);
                     continue;
                 }
             }
         }
-        for (Pnt toAdd : newPoints) {
-            if (debug) System.out.println( "Gabriel: adding " + site.toString() + ", " + toAdd.toString());
+        // Add new Gabriel points
+        for (Pnt toAdd : newGabrielPoints) {
+            if (ggDebug) System.out.println( "Gabriel: adding " + site.toString() + ", " + toAdd.toString());
             gabrielGraph.add(site, toAdd);
+        }
+        // Add new RNG points
+        for (Pnt toAdd : newRNGPoints) {
+            if (rngDebug) System.out.println( "RNG: adding " + site.toString() + ", " + toAdd.toString());
+            rnGraph.add(site, toAdd);
         }
 
         // Update the graph links for each new triangle

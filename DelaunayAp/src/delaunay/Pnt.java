@@ -40,6 +40,7 @@ package delaunay;
  * DATE         AUTHOR          DESCRIPTION
  * 04/05/2009   M. Deckard      Added functions for Gabriel graph support:
  *                              distance, midpoint, inCircle
+ * 04/11/2009   M. Deckard      Added angle2 function for RNG support
  */
 
 public class Pnt {
@@ -190,12 +191,46 @@ public class Pnt {
     }
 
     /**
-     * Angle (in radians) between two Pnts (treated as vectors).
+     * Angle to another point with respect to x-axis (2D only)
      * @param p the other Pnt
-     * @return the angle (in radians) between the two Pnts
+     * @param inRadians if true, return radians, else return degrees
+     * @return the angle between the two Pnts (default: true)
+     * @throws IllegalArgumentException if points aren't 2D
      */
+    public double angle2 (Pnt p, boolean inRadians) {
+        if (dimension() != 2 || p.dimension() != 2)
+            throw new IllegalArgumentException("Dimension mismatch");
+        double deltaX = p.coord(0) - this.coord(0);
+        double deltaY = p.coord(1) - this.coord(1);
+        double angleRad = Math.atan2(deltaY, deltaX);
+        if (inRadians) {
+            return angleRad;
+        }
+        else {
+            return angleRad * 180.0 / Math.PI;
+        }
+    }
+    public double angle2 (Pnt p) {
+        return angle(p, true);
+    }
+
+    /**
+     * Angle between two Pnts (treated as vectors).
+     * @param p the other Pnt
+     * @param inRadians if true, return radians, else return degrees (default: true)
+     * @return the angle between the two Pnts 
+     */
+    public double angle (Pnt p, boolean inRadians) {
+        double angleRad = Math.acos(this.dot(p) / (this.magnitude() * p.magnitude()));
+        if (inRadians) {
+            return angleRad;
+        }
+        else {
+            return angleRad * 180.0 / Math.PI;
+        }
+    }
     public double angle (Pnt p) {
-        return Math.acos(this.dot(p) / (this.magnitude() * p.magnitude()));
+        return angle(p, true);
     }
 
     /**

@@ -34,6 +34,7 @@ package delaunay;
  *                              Now all points are drawn after all of the graphs, and they will
  *                              show even if no graphs are selected. Also fixed color issue with
  *                              circles.
+ * 04/11/2009   M. Deckard      Added support for RNGs.
  */
 
 import java.awt.*;
@@ -79,6 +80,7 @@ public class DelaunayAp extends javax.swing.JApplet
     private JCheckBox ggCircleSwitch = new JCheckBox("Gabriel Circles");
     private JCheckBox emstSwitch =  new JCheckBox("Euclidean MST");
     private JCheckBox rngSwitch =  new JCheckBox("Relative Neighbor Graph");
+    private JCheckBox rngLensSwitch = new JCheckBox("RNG Lenses");
 
     /**
      * Main program (used when run as application instead of applet).
@@ -130,6 +132,7 @@ public class DelaunayAp extends javax.swing.JApplet
         buttonPanel.add(gabrielSwitch, JPanel.LEFT_ALIGNMENT);
         buttonPanel.add(ggCircleSwitch, JPanel.LEFT_ALIGNMENT);
         buttonPanel.add(rngSwitch, JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(rngLensSwitch, JPanel.LEFT_ALIGNMENT);
         buttonPanel.add(emstSwitch, JPanel.LEFT_ALIGNMENT);
         buttonPanel.add(clearButton, JPanel.LEFT_ALIGNMENT);
         this.add(buttonPanel, BorderLayout.WEST);
@@ -140,6 +143,7 @@ public class DelaunayAp extends javax.swing.JApplet
 
         // Register the listeners
         rngSwitch.addActionListener(this);
+        rngLensSwitch.addActionListener(this);
         emstSwitch.addActionListener(this);
         clearButton.addActionListener(this);
         colorfulBox.addActionListener(this);
@@ -225,6 +229,10 @@ public class DelaunayAp extends javax.swing.JApplet
     
     public boolean showingRNG() {
         return rngSwitch.isSelected();
+    }
+
+    public boolean showingRNGLenses() {
+        return rngLensSwitch.isSelected();
     }
     
     public boolean showingEMST() {
@@ -326,10 +334,37 @@ class DelaunayPanel extends JPanel {
             Color temp = g.getColor();
             g.setColor(color);
             g.drawOval(x-r, y-r, r+r, r+r);
+            g.setColor(Color.GREEN);
             g.setColor(temp);
         }
         else {
             g.drawOval(x-r, y-r, r+r, r+r);
+        }
+    }
+
+    /**
+     * Draw an arc of a circle.
+     * @param center the center of the circle
+     * @param radius the circle's radius
+     * @param startAngle the beginning angle.
+     * @param arcAngle the angular extent of the arc, relative to the start angle.
+     * @param color color of circle (null = default color)
+     */
+    public void drawArc (Pnt center, double radius, double startAngle, double arcAngle, Color color) {
+        int x = (int) center.coord(0);
+        int y = (int) center.coord(1);
+        int r = (int) radius;
+        int start = (int) startAngle;
+        int arc = (int) arcAngle;
+        if (color != null) {
+            Color temp = g.getColor();
+            g.setColor(color);
+            g.drawArc(x-r, y-r, r+r, r+r, start, arc);
+            g.setColor(Color.GREEN);
+            g.setColor(temp);
+        }
+        else {
+            g.drawArc(x-r, y-r, r+r, r+r, start, arc);
         }
     }
 
@@ -389,14 +424,15 @@ class DelaunayPanel extends JPanel {
             drawAllRNG(false);
         if (controller.showingEMST())
             drawAllEMST(false);
-        if (controller.showingGabrielCircles())
-            drawAllGabrielCircles();
         if (controller.showingCircles())
             drawAllCircles();
+        if (controller.showingGabrielCircles())
+            drawAllGabrielCircles();
+        if (controller.showingRNGLenses())
+            drawAllRNGLenses();
 
         // Now, draw the points
         drawAllPoints();
-
     }
 
     /**
@@ -462,7 +498,33 @@ class DelaunayPanel extends JPanel {
      * @param withSites true iff drawing the site for each point
      */
     public void drawAllRNG (boolean withSites){
+        /*
+         * NOTE: This currently does double processing it needs to, processing
+         * every edge twice: one for each triangle the edge is on.
+         */
 
+        // Loop through all triangles of the DT
+        for (Triangle triangle: dt) {
+
+            // Keep track of sites done; no drawing for initial triangles sites
+            HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
+
+            for (Pnt site: triangle) {
+                if (done.contains(site)) continue;
+                done.add(site);
+                if (withSites) draw(site);
+                Pnt site2 = triangle.getVertexButNot(site); // get another vertex
+                if ( dt.rngEdge(site, site2) && ! done.contains(site2)) {
+                    Pnt[] vertices = { site, site2 };
+                    draw(vertices, Color.green);
+                }
+                Pnt site3 = triangle.getVertexButNot(site, site2); // get another vertex
+                if ( dt.rngEdge(site, site3) && ! done.contains(site3)) {
+                    Pnt[] vertices = { site, site3 };
+                    draw(vertices, Color.green);
+                }
+            }
+        }
     }
 
     /**
@@ -545,6 +607,45 @@ class DelaunayPanel extends JPanel {
                     Pnt c = site.midpoint(site3);
                     double radius = site.distance(site3) / 2;
                     draw(c, radius, Color.red);
+                }
+            }
+        }
+    }
+
+    /**
+     * Draw all the empty lenses (one for each pair of points) of the RNG.
+     */
+    public void drawAllRNGLenses () {
+        /*
+         * NOTE: This currently does double processing it needs to, processing
+         * every edge twice: one for each triangle the edge is on.
+         */
+
+        // Loop through all triangles of the DT
+        for (Triangle triangle: dt) {
+            // Skip circles involving the initial-triangle vertices
+            if (triangle.containsAny(initialTriangle)) continue;
+
+            // Keep track of sites done; no drawing for initial triangles sites
+            HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
+
+            for (Pnt site: triangle) {
+                done.add(site);
+                Pnt site2 = triangle.getVertexButNot(site); // get another vertex
+                if ( dt.rngEdge(site, site2) && ! done.contains(site2)) {
+                    double angle1 = site.angle2(site2, false);
+                    double angle2 = site2.angle2(site, false);
+                    double distance = site.distance(site2);
+                    drawArc(site, distance, -angle1 - 60, 120.0, Color.green);
+                    drawArc(site2, distance, -angle2 - 60, 120.0, Color.green);
+                }
+                Pnt site3 = triangle.getVertexButNot(site, site2); // get another vertex
+                if ( dt.rngEdge(site, site3) && ! done.contains(site3)) {
+                    double angle1 = site.angle2(site3, false);
+                    double angle2 = site3.angle2(site, false);
+                    double distance = site.distance(site3);
+                    drawArc(site, distance, -angle1 - 60, 120.0, Color.green);
+                    drawArc(site3, distance, -angle2 - 60, 120.0, Color.green);
                 }
             }
         }
