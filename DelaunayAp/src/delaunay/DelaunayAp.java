@@ -30,6 +30,10 @@ package delaunay;
  * 04/07/2009   A. Schwartz     Massive GUI overhaul.  Delaunay = Blue Lines/Circle  Vor = Black
  *                              Gabriel = Red.  Some issues with drawing circles remain.
  *                              It currently takes the previous color, and uses it sometimes...
+ * 04/11/2009   M. Deckard      Cleaned up code a bit, making some of the naming more consistent.
+ *                              Now all points are drawn after all of the graphs, and they will
+ *                              show even if no graphs are selected. Also fixed color issue with
+ *                              circles.
  */
 
 import java.awt.*;
@@ -65,19 +69,16 @@ public class DelaunayAp extends javax.swing.JApplet
     private Component currentSwitch = null;    // Entry-switch that mouse is in
 
     private static String windowTitle = "Graph Visualizer";
-    private JCheckBox voronoiButton = new JCheckBox("Voronoi Diagram");
-    private JCheckBox delaunayButton =  new JCheckBox("Delaunay Triangulation");
-    private JCheckBox ggButton =  new JCheckBox("Gabriel Graph");
-    private JCheckBox emstButton =  new JCheckBox("Euclidean MST");
-    private JCheckBox rngButton =  new JCheckBox("Relative Neighbor Graph");
     private JButton clearButton = new JButton("Clear");
     private JCheckBox colorfulBox = new JCheckBox("More Colorful");
     private DelaunayPanel delaunayPanel = new DelaunayPanel(this);
-    private JCheckBox circleSwitch = new JCheckBox("Show Delaunay Circles");
-    private JCheckBox delaunaySwitch = new JCheckBox("Show Delaunay Edges");
-    private JCheckBox gabrielSwitch = new JCheckBox("Show Gabriel Edges");
-    private JCheckBox voronoiSwitch = new JCheckBox("Show Voronoi Edges");
-    private JCheckBox gabrielCircleSwitch = new JCheckBox("Show Gabriel Circles");
+    private JCheckBox dtCircleSwitch = new JCheckBox("Delaunay Circles");
+    private JCheckBox delaunaySwitch = new JCheckBox("Delaunay Edges");
+    private JCheckBox gabrielSwitch = new JCheckBox("Gabriel Edges");
+    private JCheckBox voronoiSwitch = new JCheckBox("Voronoi Edges");
+    private JCheckBox ggCircleSwitch = new JCheckBox("Gabriel Circles");
+    private JCheckBox emstSwitch =  new JCheckBox("Euclidean MST");
+    private JCheckBox rngSwitch =  new JCheckBox("Relative Neighbor Graph");
 
     /**
      * Main program (used when run as application instead of applet).
@@ -123,13 +124,13 @@ public class DelaunayAp extends javax.swing.JApplet
         JPanel buttonPanel = new JPanel();
         
         buttonPanel.setLayout(new GridLayout(15, 1));
-        buttonPanel.add(voronoiButton, JPanel.LEFT_ALIGNMENT);
-        buttonPanel.add(delaunayButton, JPanel.LEFT_ALIGNMENT);
-        buttonPanel.add(circleSwitch, JPanel.LEFT_ALIGNMENT);
-        buttonPanel.add(ggButton, JPanel.LEFT_ALIGNMENT);
-        buttonPanel.add(gabrielCircleSwitch, JPanel.LEFT_ALIGNMENT);
-        buttonPanel.add(rngButton, JPanel.LEFT_ALIGNMENT);
-        buttonPanel.add(emstButton, JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(voronoiSwitch, JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(delaunaySwitch, JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(dtCircleSwitch, JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(gabrielSwitch, JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(ggCircleSwitch, JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(rngSwitch, JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(emstSwitch, JPanel.LEFT_ALIGNMENT);
         buttonPanel.add(clearButton, JPanel.LEFT_ALIGNMENT);
         this.add(buttonPanel, BorderLayout.WEST);
 
@@ -138,22 +139,19 @@ public class DelaunayAp extends javax.swing.JApplet
         this.add(delaunayPanel, "Center");
 
         // Register the listeners
-        voronoiButton.addActionListener(this);
-        delaunayButton.addActionListener(this);
-        ggButton.addActionListener(this);
-        rngButton.addActionListener(this);
-        emstButton.addActionListener(this);
+        rngSwitch.addActionListener(this);
+        emstSwitch.addActionListener(this);
         clearButton.addActionListener(this);
         colorfulBox.addActionListener(this);
         delaunayPanel.addMouseListener(this);
-        gabrielCircleSwitch.addActionListener(this);
-        circleSwitch.addActionListener(this);
+        ggCircleSwitch.addActionListener(this);
+        dtCircleSwitch.addActionListener(this);
         gabrielSwitch.addActionListener(this);
         delaunaySwitch.addActionListener(this);
         voronoiSwitch.addActionListener(this);
 
         // Initialize the radio buttons
-        voronoiButton.doClick();
+        voronoiSwitch.doClick();
     }
 
     /**
@@ -213,68 +211,32 @@ public class DelaunayAp extends javax.swing.JApplet
         return colorfulBox.isSelected();
     }
 
-    /**
-     * @return true iff doing Voronoi diagram.
-     */
-    public boolean isVoronoi() {
-        return voronoiButton.isSelected();
-    }
-
-    /**
-     * @return true iff doing Delaunay triangulation.
-     */
-    public boolean isDelaunay() {
-        return delaunayButton.isSelected();
-    }
-
-    /**
-     * @return true iff doing Gabriel graph.
-     */
-    public boolean isGabriel() {
-        return ggButton.isSelected();
-    }
-    
-    public boolean isRNG() {
-        return rngButton.isSelected();
-    }
-    
-    public boolean isEMST() {
-        return emstButton.isSelected();
-    }
-
-    /**
-     * @return true iff within Gabriel circle switch
-     */
-    public boolean showingGabrielCircles() {
-        return gabrielCircleSwitch.isSelected();//currentSwitch == gabrielCircleSwitch;
-    }
-
-    /**
-     * @return true iff within circle switch
-     */
-    public boolean showingCircles() {
-        return circleSwitch.isSelected();//currentSwitch == circleSwitch;
-    }
-
-    /**
-     * @return true iff within Gabriel switch
-     */
-    public boolean showingGabriel() {
-        return gabrielSwitch.isSelected();//currentSwitch == gabrielSwitch;
-    }
-
-    /**
-     * @return true iff within delaunay switch
-     */
-    public boolean showingDelaunay() {
-        return delaunaySwitch.isSelected();//currentSwitch == delaunaySwitch;
-    }
-
-    /**
-     * @return true iff within voronoi switch
-     */
     public boolean showingVoronoi() {
-        return voronoiSwitch.isSelected();//currentSwitch == voronoiSwitch;
+        return voronoiSwitch.isSelected();
+    }
+
+    public boolean showingDelaunay() {
+        return delaunaySwitch.isSelected();
+    }
+
+    public boolean showingGabriel() {
+        return gabrielSwitch.isSelected();
+    }
+    
+    public boolean showingRNG() {
+        return rngSwitch.isSelected();
+    }
+    
+    public boolean showingEMST() {
+        return emstSwitch.isSelected();
+    }
+
+    public boolean showingGabrielCircles() {
+        return ggCircleSwitch.isSelected();//currentSwitch == gabrielCircleSwitch;
+    }
+
+    public boolean showingCircles() {
+        return dtCircleSwitch.isSelected();//currentSwitch == circleSwitch;
     }
 
 }
@@ -354,48 +316,44 @@ class DelaunayPanel extends JPanel {
      * Draw a circle.
      * @param center the center of the circle
      * @param radius the circle's radius
-     * @param fillColor null implies no fill
+     * @param color color of circle (null = default color)
      */
-    public void draw (Pnt center, double radius, Color fillColor) {
+    public void draw (Pnt center, double radius, Color color) {
         int x = (int) center.coord(0);
         int y = (int) center.coord(1);
         int r = (int) radius;
-        /*if (fillColor != null) {
+        if (color != null) {
             Color temp = g.getColor();
-            g.setColor(fillColor);
-            g.fillOval(x-r, y-r, r+r, r+r);
-            
+            g.setColor(color);
+            g.drawOval(x-r, y-r, r+r, r+r);
             g.setColor(temp);
-        }*/
-        g.drawOval(x-r, y-r, r+r, r+r);
-
-            System.out.println("===============");
-            System.out.println("Click " + fillColor);
-            System.out.println("===============");
-
-        g.setColor(fillColor);
+        }
+        else {
+            g.drawOval(x-r, y-r, r+r, r+r);
+        }
     }
 
     /**
      * Draw a polygon.
      * @param polygon an array of polygon vertices
-     * @param fillColor null implies no fill
+     * @param color color of polygon (null = default color)
      */
-    public void draw (Pnt[] polygon, Color fillColor) {
+    public void draw (Pnt[] polygon, Color color) {
         int[] x = new int[polygon.length];
         int[] y = new int[polygon.length];
         for (int i = 0; i < polygon.length; i++) {
             x[i] = (int) polygon[i].coord(0);
             y[i] = (int) polygon[i].coord(1);
         }
-        /*if (fillColor != null) {
+        if (color != null) {
             Color temp = g.getColor();
-            g.setColor(fillColor);
-            g.fillPolygon(x, y, polygon.length);
+            g.setColor(color);
+            g.drawPolygon(x, y, polygon.length);
             g.setColor(temp);
-        }*/
-        g.setColor(fillColor);
-        g.drawPolygon(x, y, polygon.length);
+        }
+        else {
+            g.drawPolygon(x, y, polygon.length);
+        }
     }
 
     /* Higher Level Drawing Methods */
@@ -420,27 +378,25 @@ class DelaunayPanel extends JPanel {
         // If no colors then we can clear the color table
         if (!controller.isColorful()) colorTable.clear();
 
-        // Draw the appropriate picture
-        if (controller.isVoronoi())
-            drawAllVoronoi(controller.isColorful(), true);
-        if (controller.isDelaunay())
-            drawAllDelaunay(controller.isColorful(), true);
-        if (controller.isGabriel())
-            drawAllGabriel(true);
-        if (controller.isRNG())
-            drawAllEMST(true);
-        if (controller.isEMST())
-            drawAllEMST(true);
+        // Draw all selected graphs and circles
+        if (controller.showingVoronoi())
+            drawAllVoronoi(controller.isColorful(), false);
+        if (controller.showingDelaunay())
+            drawAllDelaunay(controller.isColorful(), false);
+        if (controller.showingGabriel())
+            drawAllGabriel(false);
+        if (controller.showingRNG())
+            drawAllRNG(false);
+        if (controller.showingEMST())
+            drawAllEMST(false);
+        if (controller.showingGabrielCircles())
+            drawAllGabrielCircles();
+        if (controller.showingCircles())
+            drawAllCircles();
 
-        // Draw any extra info due to the mouse-entry switches
-        //temp = g.getColor();
-        //g.setColor(Color.gray);
-        if (controller.showingGabrielCircles()) drawAllGabrielCircles();
-        if (controller.showingCircles()) drawAllCircles();
-        if (controller.showingGabriel()) drawAllGabriel(false);
-        if (controller.showingDelaunay()) drawAllDelaunay(false, false);
-        if (controller.showingVoronoi()) drawAllVoronoi(false, false);
-       // g.setColor(temp);
+        // Now, draw the points
+        drawAllPoints();
+
     }
 
     /**
@@ -493,9 +449,38 @@ class DelaunayPanel extends JPanel {
             }
     }
 
+    /**
+     * Draw all the Euclidean Minimum Spanning Trees edges.
+     * @param withSites true iff drawing the site for each point
+     */
     public void drawAllEMST (boolean withSites){
     
     }
+
+    /**
+     * Draw all the Relative Neighbor Graph edges.
+     * @param withSites true iff drawing the site for each point
+     */
+    public void drawAllRNG (boolean withSites){
+
+    }
+
+    /**
+     * Draw all the points.
+     */
+    public void drawAllPoints (){
+        // Keep track of sites done; no drawing for initial triangles sites
+        HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
+
+        for (Triangle triangle : dt) {
+            for (Pnt site: triangle) {
+                 if (done.contains(site)) continue;
+                 done.add(site);
+                 draw(site);
+             }
+        }
+    }
+
     /**
      * Draw all the Gabriel edges.
      * @param withSites true iff drawing the site for each point
@@ -515,7 +500,7 @@ class DelaunayPanel extends JPanel {
             for (Pnt site: triangle) {
                 if (done.contains(site)) continue;
                 done.add(site);
-                draw(site);
+                if (withSites) draw(site);
                 Pnt site2 = triangle.getVertexButNot(site); // get another vertex
                 if ( dt.gabrielEdge(site, site2) && ! done.contains(site2)) {
                     Pnt[] vertices = { site, site2 };
