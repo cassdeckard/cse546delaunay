@@ -23,11 +23,13 @@ package delaunay;
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.TreeSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import jpaul.DataStructs.DisjointSet;
 
 /**
  * A 2D Delaunay Triangulation (DT) with incremental site insertion.
@@ -55,16 +57,21 @@ import java.util.Set;
  * DATE         AUTHOR          DESCRIPTION
  * 04/05/2009   M. Deckard      Added support for Gabriel graphs
  * 04/11/2009   M. Deckard      Added support for RNGs
+ * 05/01/2009   M. Deckard      Added support for EMSTs
  */
 
 public class Triangulation extends AbstractSet<Triangle> {
 
-    private boolean ggDebug = false;          // Output debug for Gabriel graphs
-    private boolean rngDebug = true;         // Output debug for RNGs
+    private boolean ggDebug = false;         // Debug output for Gabriel graphs
+    private boolean rngDebug = true;         // Debug output for RNGs
+    private boolean emstDebug = true;        // Debug output for EMSTs
     private Triangle mostRecent = null;      // Most recently "active" triangle
     private Graph<Triangle> triGraph;        // Holds triangles for navigation
+    private Set<Line> emstLineSet;           // Holds candidate lines for EMST
+    private Set<Pnt> pointSet;               // Holds all points in graph
     private Graph<Pnt> gabrielGraph;         // Holds points in Gabriel graph
     private Graph<Pnt> rnGraph;              // Holds points in RNG
+    private Graph<Pnt> emstGraph;            // Holds points in Euclidean MST
 
     /**
      * All sites must fall within the initial triangle.
@@ -74,6 +81,21 @@ public class Triangulation extends AbstractSet<Triangle> {
         triGraph = new Graph<Triangle>();
         triGraph.add(triangle);
         mostRecent = triangle;
+
+        // Line set init
+        emstLineSet = new TreeSet<Line>();
+        Pnt point0 = triangle.get(0);
+        Pnt point1 = triangle.get(1);
+        Pnt point2 = triangle.get(2);
+        emstLineSet.add(new Line(point0, point1));
+        emstLineSet.add(new Line(point1, point2));
+        emstLineSet.add(new Line(point2, point0));
+
+        // Point set init
+        pointSet = new HashSet<Pnt>();
+        pointSet.add(point0);
+        pointSet.add(point1);
+        pointSet.add(point2);
 
         // Gabriel init
         gabrielGraph = new Graph<Pnt>();
@@ -94,6 +116,9 @@ public class Triangulation extends AbstractSet<Triangle> {
                 rnGraph.add(vertex, vertex2);
             }
         }
+
+        // EMST init
+        emstGraph = new Graph<Pnt>();
     }
 
     /* The following two methods are required by AbstractSet */
@@ -189,6 +214,15 @@ public class Triangulation extends AbstractSet<Triangle> {
     }
 
     /**
+     * Returns true iff the EMST has an edge between site1 and site2
+     * @param site1 first point
+     * @param site2 second point
+     */
+    public boolean emstEdge (Pnt site1, Pnt site2) {
+        return emstGraph.contains(site1, site2);
+    }
+
+    /**
      * Locate the triangle with point inside it or on its boundary.
      * @param point the point to locate
      * @return the triangle that holds point; null if no such triangle
@@ -239,6 +273,43 @@ public class Triangulation extends AbstractSet<Triangle> {
         // Determine the cavity and update the triangulation
         Set<Triangle> cavity = getCavity(site, triangle);
         mostRecent = update(site, cavity);
+        
+        // Update EMST
+        computeEMST();
+    }
+
+    /**
+     * Computes the Euclidean minimum spanning tree.
+     */
+    public void computeEMST () {
+        // Reinit EMST graph
+        emstGraph = new Graph<Pnt>();
+        for(Pnt point: pointSet) {
+            emstGraph.add(point);
+        }
+
+        // The disjoint set
+        DisjointSet<Pnt> ds = new DisjointSet<Pnt>();
+
+        // The sorted array of lines
+        Line[] lineArray = emstLineSet.toArray(new Line[emstLineSet.size()]);
+
+        int count = 0;
+        if (emstDebug) System.out.println("EMST: need " + (pointSet.size() - 1) + " lines");
+        if (emstDebug) System.out.println("EMST: there are " + emstLineSet.size() + " lines in RNG");
+        for (int i = 0; count < pointSet.size() - 1; i++){
+            if (emstDebug) {
+                System.out.println("EMST: considering " + lineArray[i].toString());
+                System.out.println("EMST: first point: " + ds.find(lineArray[i].a).toString());
+                System.out.println("EMST: second point: " + ds.find(lineArray[i].b).toString());
+            }
+            if ( ! ds.find(lineArray[i].a).equals(ds.find(lineArray[i].b)) ) {
+                count++;
+                if (emstDebug) System.out.println("EMST: adding " + count + "th edge");
+                ds.union(ds.find(lineArray[i].a), ds.find(lineArray[i].b));
+                emstGraph.add(lineArray[i].a, lineArray[i].b);
+            }
+        }
     }
 
     /**
@@ -288,12 +359,13 @@ public class Triangulation extends AbstractSet<Triangle> {
                 if (boundary.contains(facet)) {
                     boundary.remove(facet);
 
-                    // remove inner edge from Gabriel graph, RNG
+                    // remove inner edge from Gabriel graph, RNG, line set
                     Pnt[] toRemove = facet.toArray(new Pnt[0]);
                     if (ggDebug) System.out.println("Gabriel: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
                     if (rngDebug) System.out.println("RNG: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
                     gabrielGraph.remove(toRemove[0], toRemove[1]);
                     rnGraph.remove(toRemove[0], toRemove[1]);
+                    emstLineSet.remove(new Line(toRemove[0], toRemove[1]));
 
                 }
                 else {
@@ -365,6 +437,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         for (Pnt[] toRemove: removeRNG){
             if (rngDebug) System.out.println( "RNG: removing " + toRemove[0].toString() + ", " + toRemove[1].toString());
             rnGraph.remove(toRemove[0], toRemove[1]);
+            emstLineSet.remove(new Line(toRemove[0], toRemove[1]));
         }
 
         // Build each new triangle and add it to the triangulation
@@ -376,9 +449,10 @@ public class Triangulation extends AbstractSet<Triangle> {
             newTriangles.add(tri);
         }
 
-        // Add new site to Gabriel graph, RNG
+        // Add new site to Gabriel graph, RNG, point set
         gabrielGraph.add(site);
         rnGraph.add(site);
+        pointSet.add(site);
 
         // Determine if we need to add edges to Gabriel graph, RNG
         // by checking to see if any existing points lie in the Gabriel
@@ -419,6 +493,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         for (Pnt toAdd : newRNGPoints) {
             if (rngDebug) System.out.println( "RNG: adding " + site.toString() + ", " + toAdd.toString());
             rnGraph.add(site, toAdd);
+            emstLineSet.add(new Line(site, toAdd));
         }
 
         // Update the graph links for each new triangle

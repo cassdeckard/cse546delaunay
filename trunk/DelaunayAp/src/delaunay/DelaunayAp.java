@@ -37,6 +37,7 @@ package delaunay;
  * 04/11/2009   M. Deckard      Added support for RNGs.
  * 04/26/2009   M. Deckard      Added color choosers, created enums for graph typs and arrays
  *                              for graph elements (checkboxes, colors, etc)
+ * 05/01/2009   M. Deckard      Added support for EMSTs.
  */
 
 import java.awt.*;
@@ -456,6 +457,8 @@ class DelaunayPanel extends JPanel {
             drawAllGabrielCircles();
         if (controller.showingGraph(DelaunayAp.RNG_LENS))
             drawAllRNGLenses();
+        if (controller.showingGraph(DelaunayAp.EMST))
+            drawAllEMST();
 
         // Now, draw the points
         drawAllPoints();
@@ -547,6 +550,38 @@ class DelaunayPanel extends JPanel {
                 if ( dt.rngEdge(site, site3) && ! done.contains(site3)) {
                     Pnt[] vertices = { site, site3 };
                     draw(vertices, DelaunayAp.graphColors[DelaunayAp.RNG]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Draw all the Euclidean Minimum Spanning Tree edges.
+     */
+    public void drawAllEMST (){
+        /*
+         * NOTE: This currently does double processing it needs to, processing
+         * every edge twice: one for each triangle the edge is on.
+         */
+
+        // Loop through all triangles of the DT
+        for (Triangle triangle: dt) {
+
+            // Keep track of sites done; no drawing for initial triangles sites
+            HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
+
+            for (Pnt site: triangle) {
+                if (done.contains(site)) continue;
+                done.add(site);
+                Pnt site2 = triangle.getVertexButNot(site); // get another vertex
+                if ( dt.emstEdge(site, site2) && ! done.contains(site2)) {
+                    Pnt[] vertices = { site, site2 };
+                    draw(vertices, DelaunayAp.graphColors[DelaunayAp.EMST]);
+                }
+                Pnt site3 = triangle.getVertexButNot(site, site2); // get another vertex
+                if ( dt.emstEdge(site, site3) && ! done.contains(site3)) {
+                    Pnt[] vertices = { site, site3 };
+                    draw(vertices, DelaunayAp.graphColors[DelaunayAp.EMST]);
                 }
             }
         }
