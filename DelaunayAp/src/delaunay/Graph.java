@@ -26,6 +26,7 @@ package delaunay;
  * DATE         AUTHOR          DESCRIPTION
  * 04/05/2009   M. Deckard      Added areNeighbors function for Gabriel graph
  *                              support.
+ * 05/01/2009   M. Deckard      Added contains function for EMST support.
  */
 
 import java.util.Collections;
@@ -67,6 +68,20 @@ public class Graph<N> {
     public void add (N nodeA, N nodeB) throws NullPointerException {
         theNeighbors.get(nodeA).add(nodeB);
         theNeighbors.get(nodeB).add(nodeA);
+    }
+
+    /**
+     * Check to see if graph contains link
+     * @param nodeA one end of the link
+     * @param nodeB the other end of the link
+     * @return true iff nodeA and nodeB have a link in the graph
+     * @throws NullPointerException if either endpoint is not in graph
+     */
+    public boolean contains (N nodeA, N nodeB) throws NullPointerException {
+        for (N neighbor: theNeighbors.get(nodeA)) {
+            if (neighbor.equals(nodeB)) return true;
+        }
+        return false;
     }
 
     /**
