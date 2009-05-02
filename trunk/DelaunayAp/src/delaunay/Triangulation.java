@@ -58,13 +58,14 @@ import jpaul.DataStructs.DisjointSet;
  * 04/05/2009   M. Deckard      Added support for Gabriel graphs
  * 04/11/2009   M. Deckard      Added support for RNGs
  * 05/01/2009   M. Deckard      Added support for EMSTs
+ * 05/01/2009   M. Deckard      Added sanity check to EMST algorithm
  */
 
 public class Triangulation extends AbstractSet<Triangle> {
 
     private boolean ggDebug = false;         // Debug output for Gabriel graphs
-    private boolean rngDebug = true;         // Debug output for RNGs
-    private boolean emstDebug = true;        // Debug output for EMSTs
+    private boolean rngDebug = false;         // Debug output for RNGs
+    private boolean emstDebug = false;        // Debug output for EMSTs
     private Triangle mostRecent = null;      // Most recently "active" triangle
     private Graph<Triangle> triGraph;        // Holds triangles for navigation
     private Set<Line> emstLineSet;           // Holds candidate lines for EMST
@@ -297,12 +298,8 @@ public class Triangulation extends AbstractSet<Triangle> {
         int count = 0;
         if (emstDebug) System.out.println("EMST: need " + (pointSet.size() - 1) + " lines");
         if (emstDebug) System.out.println("EMST: there are " + emstLineSet.size() + " lines in RNG");
-        for (int i = 0; count < pointSet.size() - 1; i++){
-            if (emstDebug) {
-                System.out.println("EMST: considering " + lineArray[i].toString());
-                System.out.println("EMST: first point: " + ds.find(lineArray[i].a).toString());
-                System.out.println("EMST: second point: " + ds.find(lineArray[i].b).toString());
-            }
+        for (int i = 0; count < pointSet.size() - 1 && i < emstLineSet.size(); i++){
+            if (emstDebug) System.out.println("EMST: considering " + lineArray[i].toString());
             if ( ! ds.find(lineArray[i].a).equals(ds.find(lineArray[i].b)) ) {
                 count++;
                 if (emstDebug) System.out.println("EMST: adding " + count + "th edge");
@@ -310,6 +307,8 @@ public class Triangulation extends AbstractSet<Triangle> {
                 emstGraph.add(lineArray[i].a, lineArray[i].b);
             }
         }
+        if (count < pointSet.size() - 1) // This should never happen!
+            System.out.println("EMST: WARNING! Missing " + (pointSet.size() - 1 - count) + " points!");
     }
 
     /**

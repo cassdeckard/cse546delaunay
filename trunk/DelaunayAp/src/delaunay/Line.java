@@ -25,6 +25,8 @@ package delaunay;
  *
  * DATE         AUTHOR          DESCRIPTION
  * 05/01/2009   M. Deckard      Initial creation.
+ * 05/01/2009   M. Deckard      Corrected compareTo function for use in
+ *                              search tree
  */
 
 /**
@@ -59,9 +61,18 @@ public class Line implements Comparable {
         final int AFTER = 1;
 
         Line compareLine = (Line) o;
+        if (this.equals(o)) return EQUAL;
         if (this.length() < compareLine.length()) return BEFORE;
         if (this.length() > compareLine.length()) return AFTER;
-        return EQUAL;
+
+        // We want to allow different lines of the same length
+        // in our sorted line set, so we need to compare by other means if
+        // the lengths are equal
+        if (this.a.coord(0) < compareLine.a.coord(0)) return BEFORE; //x-coord of first point
+        if (this.a.coord(1) < compareLine.a.coord(1)) return BEFORE; //y-coord of first point
+        if (this.b.coord(0) < compareLine.b.coord(0)) return BEFORE; //x-coord of second point
+        if (this.b.coord(1) < compareLine.b.coord(1)) return BEFORE; //y-coord of second point
+        return AFTER;
     }
 
     @Override
