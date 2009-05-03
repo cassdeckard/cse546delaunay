@@ -62,6 +62,32 @@ public class Line implements Comparable {
                 - (this.b.getY() * point.getX())
                 - (point.getY() * this.a.getX());
     }
+
+    public boolean intersects(Line testLine) {
+        // get orients of the endpoints of this line
+        double orientA = testLine.orient(this.a);
+        double orientB = testLine.orient(this.b);
+
+        // make sure orients are not zero
+        if (orientA == 0.0 || orientB == 0.0) return true;
+
+        // see if they're on same side of testLine
+        if ( (orientA / orientA) == (orientB / orientB) ) return false;
+
+        // get orients of testLine's endpoints
+        orientA = this.orient(testLine.a);
+        orientB = this.orient(testLine.b);
+
+        // make sure orients are not zero
+        if (orientA == 0.0 || orientB == 0.0) return true;
+
+        // see if they're on same side of testLine
+        if ( (orientA / orientA) == (orientB / orientB) ) return false;
+
+        // lines must intersect
+        return true;
+
+    }
     
     public boolean cross(Line initial, Line secondary, boolean debug)
     {
