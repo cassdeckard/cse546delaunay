@@ -68,7 +68,7 @@ public class Triangulation extends AbstractSet<Triangle> {
     private boolean ggDebug = false;        // Debug output for Gabriel graphs
     private boolean rngDebug = false;       // Debug output for RNGs
     private boolean emstDebug = false;      // Debug output for EMSTs
-    private boolean mwtDebug = true;       // Debug output for MWTs
+    private boolean mwtDebug = false;       // Debug output for MWTs
     private Triangle mostRecent = null;     // Most recently "active" triangle
     private Triangle initTri;               // Initial "bounding" triangle
     private Graph<Triangle> triGraph;       // Holds triangles for navigation
@@ -296,9 +296,11 @@ public class Triangulation extends AbstractSet<Triangle> {
         computeEMST();
         
         //Only compute MWT when selected
-
-            computeMWT();
-        
+        //computeMWT();
+    }
+    public void showMWT()
+    {
+        computeMWT();
     }
 
     /**
