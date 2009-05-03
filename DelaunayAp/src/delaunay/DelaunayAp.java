@@ -330,7 +330,7 @@ class DelaunayPanel extends JPanel
     private Random random = new Random();       // Source of random numbers
     private Pnt selectedSite;
     public int numPoints = 0;
-    public int numMWTPointsAllowed = 10;
+    public int numMWTPointsAllowed = 15;
 
     /**
      * Create and initialize the DT.
