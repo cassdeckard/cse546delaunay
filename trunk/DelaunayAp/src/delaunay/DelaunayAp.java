@@ -38,6 +38,7 @@ package delaunay;
  * 04/26/2009   M. Deckard      Added color choosers, created enums for graph typs and arrays
  *                              for graph elements (checkboxes, colors, etc)
  * 05/01/2009   M. Deckard      Added support for EMSTs.
+ * 05/02/2009   M. Deckard      Added ability to remove points (right click) and drag points around.
  */
 
 import java.awt.*;
@@ -47,6 +48,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseEvent;
 
 import javax.swing.*;
 
@@ -250,14 +253,28 @@ public class DelaunayAp extends javax.swing.JApplet
             System.out.println("Click " + point);
             System.out.println("===============");
         }
-        delaunayPanel.addSite(point);
+
+        Pnt nearest = delaunayPanel.querySite(point);
+        if (e.getButton() == e.BUTTON1) {
+            if (nearest.distance(point) > 5.0) {
+                delaunayPanel.addSite(point);
+            }
+        }
+        else {
+            if (nearest.distance(point) < 5.0) {
+                delaunayPanel.removeSite(nearest);
+            }
+        }
         delaunayPanel.repaint();
     }
 
     /**
      * Not used, but needed for MouseListener.
      */
-    public void mouseReleased(MouseEvent e) {}
+    public void mouseReleased(MouseEvent e) {
+        delaunayPanel.selectSite(null);
+        delaunayPanel.repaint();
+    }
     public void mouseClicked(MouseEvent e) {
     }
 
@@ -282,7 +299,8 @@ public class DelaunayAp extends javax.swing.JApplet
  * Graphics Panel for DelaunayAp.
  */
 @SuppressWarnings("serial")
-class DelaunayPanel extends JPanel {
+class DelaunayPanel extends JPanel
+                    implements MouseMotionListener {
 
     public static int pointRadius = 3;
 
@@ -293,6 +311,7 @@ class DelaunayPanel extends JPanel {
     private static int initialSize = 10000;     // Size of initial triangle
     private Graphics g;                         // Stored graphics context
     private Random random = new Random();       // Source of random numbers
+    private Pnt selectedSite;
 
     /**
      * Create and initialize the DT.
@@ -305,6 +324,32 @@ class DelaunayPanel extends JPanel {
                 new Pnt(           0,  initialSize));
         dt = new Triangulation(initialTriangle);
         colorTable = new HashMap<Object, Color>();
+        selectedSite = new Pnt(-initialSize, -initialSize);
+
+        // Register for mouse events
+        addMouseMotionListener(this);
+    }
+
+    public void mouseMoved(MouseEvent e) {
+        Pnt point = new Pnt(e.getX(), e.getY());
+        Pnt nearest = dt.findNearest(point);
+        if ( nearest.distance(point) < 5.0 && ( selectedSite == null || ! selectedSite.equals(nearest) ) ) {
+            selectedSite = nearest;
+            repaint();
+        }
+        else if ( nearest.distance(point) >= 5.0 &&  selectedSite != null ) {
+            selectedSite = null;
+            repaint();
+        }
+    }
+
+    public void mouseDragged(MouseEvent e) {
+        if (selectedSite != null) {
+            removeSite(selectedSite);
+            selectedSite = new Pnt(e.getX(), e.getY());
+            addSite(selectedSite);
+            repaint();
+        }
     }
 
     /**
@@ -315,11 +360,36 @@ class DelaunayPanel extends JPanel {
         dt.delaunayPlace(point);
     }
 
+
+    /**
+     * Change selected site.
+     * @param point the site to select
+     */
+    public void selectSite(Pnt point) {
+        selectedSite = point;
+    }
+
+    /**
+     * Query site
+     * @param query the query location
+     */
+    public Pnt querySite(Pnt query) {
+        return dt.findNearest(query);
+    }
+
+    /**
+     * Remove a site from the DT.
+     * @param point the site to remove
+     */
+    public void removeSite(Pnt point) {
+        dt.delaunayRemove(point);
+    }
+
     /**
      * Re-initialize the DT.
      */
     public void clear() {
-        dt = new Triangulation(initialTriangle);
+        dt.clear();
     }
 
     /**
@@ -345,6 +415,20 @@ class DelaunayPanel extends JPanel {
         int x = (int) point.coord(0);
         int y = (int) point.coord(1);
         g.fillOval(x-r, y-r, r+r, r+r);
+    }
+
+    /**
+     * Draw a point.
+     * @param point the Pnt to draw
+     * @param color the color to make the point
+     */
+    public void draw (Pnt point, Color color) {
+        if (color != null) {
+            Color temp = g.getColor();
+            g.setColor(color);
+            draw(point);
+            g.setColor(temp);
+        }
     }
 
     /**
@@ -617,7 +701,12 @@ class DelaunayPanel extends JPanel {
             for (Pnt site: triangle) {
                  if (done.contains(site)) continue;
                  done.add(site);
-                 draw(site);
+                 if (site.equals(selectedSite)) {
+                    draw(site, Color.RED);
+                 }
+                 else {
+                    draw(site);
+                 }
              }
         }
     }

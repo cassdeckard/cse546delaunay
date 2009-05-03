@@ -59,20 +59,24 @@ import jpaul.DataStructs.DisjointSet;
  * 04/11/2009   M. Deckard      Added support for RNGs
  * 05/01/2009   M. Deckard      Added support for EMSTs
  * 05/01/2009   M. Deckard      Added sanity check to EMST algorithm
+ * 05/02/2009   M. Deckard      Added support for removing points and finding
+ *                              nearest point to a query location
  */
 
 public class Triangulation extends AbstractSet<Triangle> {
 
-    private boolean ggDebug = false;         // Debug output for Gabriel graphs
-    private boolean rngDebug = false;         // Debug output for RNGs
-    private boolean emstDebug = false;        // Debug output for EMSTs
-    private Triangle mostRecent = null;      // Most recently "active" triangle
-    private Graph<Triangle> triGraph;        // Holds triangles for navigation
-    private Set<Line> emstLineSet;           // Holds candidate lines for EMST
-    private Set<Pnt> pointSet;               // Holds all points in graph
-    private Graph<Pnt> gabrielGraph;         // Holds points in Gabriel graph
-    private Graph<Pnt> rnGraph;              // Holds points in RNG
-    private Graph<Pnt> emstGraph;            // Holds points in Euclidean MST
+    private boolean ggDebug = false;        // Debug output for Gabriel graphs
+    private boolean rngDebug = false;       // Debug output for RNGs
+    private boolean emstDebug = false;      // Debug output for EMSTs
+    private boolean mwtDebug = false;       // Debug output for MWTs
+    private Triangle mostRecent = null;     // Most recently "active" triangle
+    private Triangle initTri;               // Initial "bounding" triangle
+    private Graph<Triangle> triGraph;       // Holds triangles for navigation
+    private Set<Line> emstLineSet;          // Holds candidate lines for EMST
+    private Set<Pnt> pointSet;              // Holds all points in graph
+    private Graph<Pnt> gabrielGraph;        // Holds points in Gabriel graph
+    private Graph<Pnt> rnGraph;             // Holds points in RNG
+    private Graph<Pnt> emstGraph;           // Holds points in Euclidean MST
     private Graph<Pnt> mwtGraph;            // Holds points in Euclidean MST
     private Set<Line> mwtLineSet;           // Holds candidate lines for EMST
 
@@ -82,14 +86,15 @@ public class Triangulation extends AbstractSet<Triangle> {
      */
     public Triangulation (Triangle triangle) {
         triGraph = new Graph<Triangle>();
-        triGraph.add(triangle);
-        mostRecent = triangle;
+        initTri = triangle;
+        Pnt point0 = initTri.get(0);
+        Pnt point1 = initTri.get(1);
+        Pnt point2 = initTri.get(2);
+        triGraph.add(initTri);
+        mostRecent = initTri;
 
         // Line set init
         emstLineSet = new TreeSet<Line>();
-        Pnt point0 = triangle.get(0);
-        Pnt point1 = triangle.get(1);
-        Pnt point2 = triangle.get(2);
         emstLineSet.add(new Line(point0, point1));
         emstLineSet.add(new Line(point1, point2));
         emstLineSet.add(new Line(point2, point0));
@@ -102,9 +107,9 @@ public class Triangulation extends AbstractSet<Triangle> {
 
         // Gabriel init
         gabrielGraph = new Graph<Pnt>();
-        for (Pnt vertex: triangle) {
+        for (Pnt vertex: initTri) {
             gabrielGraph.add(vertex);
-            for (Pnt vertex2: triangle) {
+            for (Pnt vertex2: initTri) {
                 gabrielGraph.add(vertex2);
                 gabrielGraph.add(vertex, vertex2);
             }
@@ -112,9 +117,9 @@ public class Triangulation extends AbstractSet<Triangle> {
 
         // RNG init
         rnGraph = new Graph<Pnt>();
-        for (Pnt vertex: triangle) {
+        for (Pnt vertex: initTri) {
             rnGraph.add(vertex);
-            for (Pnt vertex2: triangle) {
+            for (Pnt vertex2: initTri) {
                 rnGraph.add(vertex2);
                 rnGraph.add(vertex, vertex2);
             }
@@ -287,6 +292,110 @@ public class Triangulation extends AbstractSet<Triangle> {
     }
 
     /**
+     * Find nearest point to a location
+     * @param query the query location
+     * @return point closest to query
+     */
+    public Pnt findNearest (Pnt query) {
+        Triangle containing = locate(query);
+        Pnt result = initTri.getVertexButNot();
+        double minDist = result.distance(query);
+        for (Pnt point : containing) {
+            double newDist = point.distance(query);
+            if (newDist < minDist) {
+                minDist = newDist;
+                result = point;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Removes a site from the DT.
+     * Nothing happens if the site doesn't match an existing DT vertex.
+     * @param site the new Pnt
+     * @throws IllegalArgumentException if site does not lie in any triangle
+     */
+    public void delaunayRemove (Pnt site) {
+        // Return if site isn't in the graph
+        if ( ! pointSet.contains(site) ) {
+            System.out.println("ERROR: tried to remove point that wasn't there: " + site.toString());
+            return;
+        }
+
+        // Remove site from pointSet
+        pointSet.remove(site);
+
+        // Save array of points we want to keep
+        Pnt[] keepPoints = pointSet.toArray(new Pnt[pointSet.size()]);
+
+        // Reinitialize this triangulation
+        clear();
+        for (Pnt point : keepPoints) {
+            delaunayPlace(point);
+        }
+    }
+
+    /**
+     * Clears this triangulation.
+     * Uses the same initial "bounding" triangulation. All other points
+     * and graphs are cleared.
+     */
+    @Override
+    public void clear() {
+        //private Set<Pnt> pointSet;               // Holds all points in graph
+        //private Graph<Pnt> gabrielGraph;         // Holds points in Gabriel graph
+        //private Graph<Pnt> rnGraph;              // Holds points in RNG
+        //private Graph<Pnt> emstGraph;            // Holds points in Euclidean MST
+
+        //super.clear(); // Clear Triangulation
+
+        // Reinit triGraph, mostRecent
+        triGraph = new Graph<Triangle>();
+        Pnt point0 = initTri.get(0);
+        Pnt point1 = initTri.get(1);
+        Pnt point2 = initTri.get(2);
+        triGraph.add(initTri);
+        mostRecent = initTri;
+
+        // Line set reinit
+        emstLineSet = new TreeSet<Line>();
+        emstLineSet.add(new Line(point0, point1));
+        emstLineSet.add(new Line(point1, point2));
+        emstLineSet.add(new Line(point2, point0));
+
+        // Point set reinit
+        pointSet = new HashSet<Pnt>();
+        pointSet.add(point0);
+        pointSet.add(point1);
+        pointSet.add(point2);
+
+        // Gabriel reinit
+        gabrielGraph = new Graph<Pnt>();
+        for (Pnt vertex: initTri) {
+            gabrielGraph.add(vertex);
+            for (Pnt vertex2: initTri) {
+                gabrielGraph.add(vertex2);
+                gabrielGraph.add(vertex, vertex2);
+            }
+        }
+
+        // RNG reinit
+        rnGraph = new Graph<Pnt>();
+        for (Pnt vertex: initTri) {
+            rnGraph.add(vertex);
+            for (Pnt vertex2: initTri) {
+                rnGraph.add(vertex2);
+                rnGraph.add(vertex, vertex2);
+            }
+        }
+
+        // EMST reinit
+        emstGraph = new Graph<Pnt>();
+
+    }
+
+    /**
      * Computes the Euclidean minimum spanning tree.
      */
     public void computeEMST () {
@@ -358,7 +467,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         Line[] lineArray = mwtLineSet.toArray(new Line[mwtLineSet.size()]);
         for(Line line: lineArray) {
             //mwtGraph.add(point);
-            System.out.println(line + " possible line for MWT");
+            if (mwtDebug) System.out.println(line + " possible line for MWT");
         }
         
         //Print permutations of these edgelists
@@ -375,13 +484,13 @@ public class Triangulation extends AbstractSet<Triangle> {
             finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
             for (Line finishedline: finishedLineArray) //THIS IS NOT WORKING YET
             {
-                if (line.cross(line, finishedline))
+                if (line.cross(line, finishedline, mwtDebug))
                     keepline = false;
             }
             if (keepline == true)
             {
                finishedMWTLineSet.add(line);
-               System.out.println("Adding a line");
+               if (mwtDebug) System.out.println("Adding a line");
             }
         }
         
@@ -389,7 +498,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
         for(Line line: finishedLineArray) {
             //mwtGraph.add(point);
-            System.out.println(line + " FINAL line for MWT");
+            if (mwtDebug) System.out.println(line + " FINAL line for MWT");
         }
         
         // The disjoint set

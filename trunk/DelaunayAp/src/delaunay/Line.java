@@ -54,15 +54,15 @@ public class Line implements Comparable {
         return a.distance(b);
     }
     
-    public boolean cross(Line initial, Line secondary)
+    public boolean cross(Line initial, Line secondary, boolean debug)
     {
         //See if secondary crosses the initial line
         Pnt[] simplex = {initial.a, initial.b, initial.b};
         int[] i = secondary.a.relation(simplex);
         int[] j = secondary.b.relation(simplex);
-        System.out.println("New comparison of " + initial + "and" + secondary );
-        System.out.println(i[0] + " " + i[1] + " " + i[2] + " i");
-        System.out.println(j[0] + " " + j[1] + " " + j[2] + " j");
+        if (debug) System.out.println("New comparison of " + initial + "and" + secondary );
+        if (debug) System.out.println(i[0] + " " + i[1] + " " + i[2] + " i");
+        if (debug) System.out.println(j[0] + " " + j[1] + " " + j[2] + " j");
         
         if (i[0] != j[0])
             return true;
