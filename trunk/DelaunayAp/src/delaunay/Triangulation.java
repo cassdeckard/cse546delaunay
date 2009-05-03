@@ -68,7 +68,7 @@ public class Triangulation extends AbstractSet<Triangle> {
     private boolean ggDebug = false;        // Debug output for Gabriel graphs
     private boolean rngDebug = false;       // Debug output for RNGs
     private boolean emstDebug = false;      // Debug output for EMSTs
-    private boolean mwtDebug = false;       // Debug output for MWTs
+    private boolean mwtDebug = true;       // Debug output for MWTs
     private Triangle mostRecent = null;     // Most recently "active" triangle
     private Triangle initTri;               // Initial "bounding" triangle
     private Graph<Triangle> triGraph;       // Holds triangles for navigation
@@ -467,7 +467,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         Line[] lineArray = mwtLineSet.toArray(new Line[mwtLineSet.size()]);
         for(Line line: lineArray) {
             //mwtGraph.add(point);
-            if (mwtDebug) System.out.println(line + " possible line for MWT");
+            if (true) System.out.println(line + " possible line for MWT");
         }
         
         //Print permutations of these edgelists
@@ -478,20 +478,27 @@ public class Triangulation extends AbstractSet<Triangle> {
         Line[] finishedLineArray;// = mwtLineSet.toArray(new Line[mwtLineSet.size()]); 
         boolean keepline = false;
         
+        int ii = 0;
+        int jj = 0;
         for (Line line: lineArray)
         {
+            System.out.println("Comparing " +  ii);
+            jj = 0;
             keepline = true;
             finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
             for (Line finishedline: finishedLineArray) //THIS IS NOT WORKING YET
             {
+                System.out.println("TO  " +  jj);
                 if (line.cross(line, finishedline, mwtDebug))
                     keepline = false;
+                jj++;
             }
             if (keepline == true)
             {
                finishedMWTLineSet.add(line);
                if (mwtDebug) System.out.println("Adding a line");
             }
+            ii++;
         }
         
         //Print all the final edges
