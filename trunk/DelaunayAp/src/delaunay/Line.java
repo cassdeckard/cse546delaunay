@@ -53,6 +53,15 @@ public class Line implements Comparable {
     public double length () {
         return a.distance(b);
     }
+
+    public double orient(Pnt point) {
+        return (this.b.getX() * point.getY())
+                + (point.getX() * this.a.getY())
+                + (this.a.getX() * this.b.getY())
+                - (this.a.getY() * this.b.getX())
+                - (this.b.getY() * point.getX())
+                - (point.getY() * this.a.getX());
+    }
     
     public boolean cross(Line initial, Line secondary, boolean debug)
     {
