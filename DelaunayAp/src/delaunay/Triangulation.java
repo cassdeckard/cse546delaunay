@@ -493,7 +493,7 @@ public class Triangulation extends AbstractSet<Triangle> {
             for (Line finishedline: finishedLineArray) //THIS IS NOT WORKING YET
             {
                 //System.out.println("TO  " +  jj);
-                if (line.cross(line, finishedline, mwtDebug))
+                if (line.intersects(finishedline))
                     keepline = false;
                // jj++;
             }
