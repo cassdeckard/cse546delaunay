@@ -88,8 +88,8 @@ public class Line implements Comparable {
         double xi = (c2 - c1) / (m1 - m2);
         double yi = (m1 * xi) + c1;
         
-        if ((((initial.b.getX() - xi) * (xi - initial.a.getX()) > 0 && (((initial.b.getY() - yi)*(yi - initial.a.getY()) > 0
-                && (((secondary.b.getX() - xi) * (xi - secondary.a.getX()) > 0) && (secondary.b.getY() - xi) * (xi - secondary.a.getY()) > 0))))))
+        if (((((initial.b.getX() - xi) * (xi - initial.a.getX()) > 0) && ((((initial.b.getY() - yi)*(yi - initial.a.getY()) > 0)
+                && (((secondary.b.getX() - xi) * (xi - secondary.a.getX()) > 0) && (secondary.b.getY() - yi) * (yi - secondary.a.getY()) > 0))))))
         {
             return true; //segments intersect each other
         }
