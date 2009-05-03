@@ -671,7 +671,12 @@ class DelaunayPanel extends JPanel
     public void drawAllMWT (){
 
         //CHANGE TO BE FOR MWT
-           for (Triangle triangle: dt) {
+        for (Line line : dt.finalmwtLineSet)
+        {
+            Pnt[] vertices = { line.a, line.b };
+            draw(vertices, DelaunayAp.graphColors[DelaunayAp.MWT]);
+        }
+        /*   for (Triangle triangle: dt) {
 
             // Keep track of sites done; no drawing for initial triangles sites
             HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
@@ -680,17 +685,17 @@ class DelaunayPanel extends JPanel
                 if (done.contains(site)) continue;
                 done.add(site);
                 Pnt site2 = triangle.getVertexButNot(site); // get another vertex
-                if ( dt.emstEdge(site, site2) && ! done.contains(site2)) {
+                if ( dt.mwtEdge(site, site2) && ! done.contains(site2)) {
                     Pnt[] vertices = { site, site2 };
                     draw(vertices, DelaunayAp.graphColors[DelaunayAp.MWT]);
                 }
                 Pnt site3 = triangle.getVertexButNot(site, site2); // get another vertex
-                if ( dt.emstEdge(site, site3) && ! done.contains(site3)) {
+                if ( dt.mwtEdge(site, site3) && ! done.contains(site3)) {
                     Pnt[] vertices = { site, site3 };
                     draw(vertices, DelaunayAp.graphColors[DelaunayAp.MWT]);
                 }
             }
-        }
+        }*/
     }
 
     /**

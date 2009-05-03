@@ -57,24 +57,44 @@ public class Line implements Comparable {
     public boolean cross(Line initial, Line secondary, boolean debug)
     {
         //See if secondary crosses the initial line
-        Pnt[] simplex = {initial.a, initial.b, initial.a.midpoint(initial.b)};
-        int[] i = secondary.a.relation(simplex);
-        int[] j = secondary.b.relation(simplex);
-        if (debug) System.out.println("New comparison of " + initial + "and" + secondary );
-        if (debug) System.out.println(i[0] + " " + i[1] + " " + i[2] + " i");
-        if (debug) System.out.println(j[0] + " " + j[1] + " " + j[2] + " j");
-        
-      
-        
-        if ((i[0] == j[0]) && (i[1] == j[1]) && (i[2] == j[2]))
-            return false;
-       /* if ((i[0] < j[0]) && (i[1] < j[1]) && (i[2] < j[2]))
-            return false;
-        if ((i[0] > j[0]) && (i[1] > j[1]) && (i[2] > j[2]))
-            return false;*/
+        /*
+         Found this at: http://www.gidforums.com/t-20866.html
+        m1=(y2-y1)/(x2-x1) ---- A
+        m2=(v2-v1)/(u2-u1) ---- B
 
+        c1=y1-m1*x1
+        c2=v1-m2*x2
+
+        so the intersection points are
+
+        xi=(c2-c1)/(m1-m2) ---- C
+        yi=m1*xi+c1
+
+        if((((x1-xi)*(xi-x2))>0)&&(((y1-yi)*(yi-y2))>0)&&(((u1-xi)*(xi-u2))>0)&&(((v1-xi)*(xi-v2))>0))
+        {
+            both segments intersects each other
+        }
+        else
+        both segments will not intersect each other*/
         
-        return true;//it does cross
+        //System.out.println("A Coord: " + initial.a.getX() + " " + initial.a.getY());
+        
+        double m1 = (initial.a.getY() - initial.b.getY())/(initial.a.getX() - initial.b.getX());
+        double m2 = (secondary.a.getY() - secondary.b.getY())/(secondary.a.getX() - secondary.b.getX());
+        
+        double c1 = initial.b.getY() - (m1 * initial.b.getX());
+        double c2 = secondary.b.getY() - (m2 * initial.a.getX());
+        
+        double xi = (c2 - c1) / (m1 - m2);
+        double yi = (m1 * xi) + c1;
+        
+        if ((((initial.b.getX() - xi) * (xi - initial.a.getX()) > 0 && (((initial.b.getY() - yi)*(yi - initial.a.getY()) > 0
+                && (((secondary.b.getX() - xi) * (xi - secondary.a.getX()) > 0) && (secondary.b.getY() - xi) * (xi - secondary.a.getY()) > 0))))))
+        {
+            return true; //segments intersect each other
+        }
+        else
+            return false;
     }
 
     @Override

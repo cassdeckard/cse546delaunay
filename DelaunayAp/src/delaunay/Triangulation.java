@@ -78,7 +78,8 @@ public class Triangulation extends AbstractSet<Triangle> {
     private Graph<Pnt> rnGraph;             // Holds points in RNG
     private Graph<Pnt> emstGraph;           // Holds points in Euclidean MST
     private Graph<Pnt> mwtGraph;            // Holds points in Euclidean MST
-    private Set<Line> mwtLineSet;           // Holds candidate lines for EMST
+    private Set<Line> mwtLineSet;           // Holds candidate lines for MWT
+    public Set<Line> finalmwtLineSet;           // Holds candidate lines for MWT
 
     /**
      * All sites must fall within the initial triangle.
@@ -127,6 +128,7 @@ public class Triangulation extends AbstractSet<Triangle> {
 
         // EMST init
         emstGraph = new Graph<Pnt>();
+        mwtGraph = new Graph<Pnt>();
     }
 
     /* The following two methods are required by AbstractSet */
@@ -392,6 +394,7 @@ public class Triangulation extends AbstractSet<Triangle> {
 
         // EMST reinit
         emstGraph = new Graph<Pnt>();
+        mwtGraph = new Graph<Pnt>();
 
     }
 
@@ -429,6 +432,7 @@ public class Triangulation extends AbstractSet<Triangle> {
 
     public void computeMWT () {
         // Reinit MWT graph
+        mwtGraph = new Graph<Pnt>();
         Set<Pnt> mwtPointSet = new HashSet<Pnt>();
         
         //Not sure why these points are in Pointset - removing them
@@ -437,11 +441,11 @@ public class Triangulation extends AbstractSet<Triangle> {
         Pnt badpoint2 = new Pnt(0, 10000);
         
         //Get all points
-        mwtGraph = new Graph<Pnt>();
         for(Pnt point: pointSet) {
             if (!point.equals(badpoint) && !point.equals(badpoint1) && !point.equals(badpoint2))
             {
             mwtPointSet.add(point);
+            mwtGraph.add(point);
             //System.out.println(point + " point for MWT");
             }
         }
@@ -467,7 +471,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         Line[] lineArray = mwtLineSet.toArray(new Line[mwtLineSet.size()]);
         for(Line line: lineArray) {
             //mwtGraph.add(point);
-            if (true) System.out.println(line + " possible line for MWT");
+            if (mwtDebug) System.out.println(line + " possible line for MWT");
         }
         
         //Print permutations of these edgelists
@@ -478,35 +482,38 @@ public class Triangulation extends AbstractSet<Triangle> {
         Line[] finishedLineArray;// = mwtLineSet.toArray(new Line[mwtLineSet.size()]); 
         boolean keepline = false;
         
-        int ii = 0;
-        int jj = 0;
+        //int ii = 0;
+        //int jj = 0;
         for (Line line: lineArray)
         {
-            System.out.println("Comparing " +  ii);
-            jj = 0;
+           // System.out.println("Comparing " +  ii);
+            //jj = 0;
             keepline = true;
             finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
             for (Line finishedline: finishedLineArray) //THIS IS NOT WORKING YET
             {
-                System.out.println("TO  " +  jj);
+                //System.out.println("TO  " +  jj);
                 if (line.cross(line, finishedline, mwtDebug))
                     keepline = false;
-                jj++;
+               // jj++;
             }
             if (keepline == true)
             {
                finishedMWTLineSet.add(line);
                if (mwtDebug) System.out.println("Adding a line");
             }
-            ii++;
+           // ii++;
         }
         
         //Print all the final edges
         finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
         for(Line line: finishedLineArray) {
-            //mwtGraph.add(point);
+            
             if (mwtDebug) System.out.println(line + " FINAL line for MWT");
+            //System.out.println(line.a + "  " + line.b + " vertices");
+            mwtGraph.add(line.a, line.b);
         }
+        finalmwtLineSet = finishedMWTLineSet;
         
         // The disjoint set
         //DisjointSet<Pnt> ds = new DisjointSet<Pnt>();
