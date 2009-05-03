@@ -128,7 +128,11 @@ public class Triangulation extends AbstractSet<Triangle> {
 
         // EMST init
         emstGraph = new Graph<Pnt>();
+        
+        // MWT init
         mwtGraph = new Graph<Pnt>();
+        finalmwtLineSet = new TreeSet<Line>();
+        
     }
 
     /* The following two methods are required by AbstractSet */
@@ -290,7 +294,11 @@ public class Triangulation extends AbstractSet<Triangle> {
         
         // Update EMST
         computeEMST();
-        computeMWT();
+        
+        //Only compute MWT when selected
+
+            computeMWT();
+        
     }
 
     /**
@@ -395,6 +403,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         // EMST reinit
         emstGraph = new Graph<Pnt>();
         mwtGraph = new Graph<Pnt>();
+        finalmwtLineSet = new TreeSet<Line>();
 
     }
 
