@@ -345,10 +345,13 @@ class DelaunayPanel extends JPanel
 
     public void mouseDragged(MouseEvent e) {
         if (selectedSite != null) {
-            removeSite(selectedSite);
-            selectedSite = new Pnt(e.getX(), e.getY());
-            addSite(selectedSite);
-            repaint();
+            Pnt newSite = new Pnt(e.getX(), e.getY());
+            if ( ! dt.findNearest(newSite).equals(newSite)) {
+                removeSite(selectedSite);
+                addSite(newSite);
+                selectedSite = newSite;
+                repaint();
+            }
         }
     }
 
