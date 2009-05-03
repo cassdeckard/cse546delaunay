@@ -57,21 +57,24 @@ public class Line implements Comparable {
     public boolean cross(Line initial, Line secondary, boolean debug)
     {
         //See if secondary crosses the initial line
-        Pnt[] simplex = {initial.a, initial.b, initial.b};
+        Pnt[] simplex = {initial.a, initial.b, initial.a.midpoint(initial.b)};
         int[] i = secondary.a.relation(simplex);
         int[] j = secondary.b.relation(simplex);
         if (debug) System.out.println("New comparison of " + initial + "and" + secondary );
         if (debug) System.out.println(i[0] + " " + i[1] + " " + i[2] + " i");
         if (debug) System.out.println(j[0] + " " + j[1] + " " + j[2] + " j");
         
-        if (i[0] != j[0])
-            return true;
-        if (i[1] != j[1])
-            return true;
-        if (i[2] != j[2])
-            return true;
+      
         
-        return false;//it does not cross
+        if ((i[0] == j[0]) && (i[1] == j[1]) && (i[2] == j[2]))
+            return false;
+       /* if ((i[0] < j[0]) && (i[1] < j[1]) && (i[2] < j[2]))
+            return false;
+        if ((i[0] > j[0]) && (i[1] > j[1]) && (i[2] > j[2]))
+            return false;*/
+
+        
+        return true;//it does cross
     }
 
     @Override
