@@ -380,6 +380,11 @@ class DelaunayPanel extends JPanel
      */
     public void addSite(Pnt point) {
         dt.delaunayPlace(point);
+        if (controller.calculateMWT())
+        {
+             dt.showMWT();
+            // repaint();
+        }
         numPoints++;
     }
 
@@ -568,6 +573,7 @@ class DelaunayPanel extends JPanel
             drawAllEMST();
         if (controller.showingGraph(DelaunayAp.MWT) && (numPoints < numMWTPointsAllowed))
         {
+            dt.computeMWT();
             drawAllMWT();
         }       
 
