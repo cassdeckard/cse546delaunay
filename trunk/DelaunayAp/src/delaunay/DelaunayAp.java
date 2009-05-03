@@ -449,8 +449,6 @@ class DelaunayPanel extends JPanel {
             drawAllGabriel(false);
         if (controller.showingGraph(DelaunayAp.RNG))
             drawAllRNG(false);
-        if (controller.showingGraph(DelaunayAp.EMST))
-            drawAllEMST(false);
         if (controller.showingGraph(DelaunayAp.DELAUNAY_CIRCLE))
             drawAllDelaunayCircles();
         if (controller.showingGraph(DelaunayAp.GABRIEL_CIRCLE))
@@ -459,6 +457,8 @@ class DelaunayPanel extends JPanel {
             drawAllRNGLenses();
         if (controller.showingGraph(DelaunayAp.EMST))
             drawAllEMST();
+        if (controller.showingGraph(DelaunayAp.MWT))
+            drawAllMWT();
 
         // Now, draw the points
         drawAllPoints();
@@ -514,14 +514,6 @@ class DelaunayPanel extends JPanel {
     }
 
     /**
-     * Draw all the Euclidean Minimum Spanning Trees edges.
-     * @param withSites true iff drawing the site for each point
-     */
-    public void drawAllEMST (boolean withSites){
-    
-    }
-
-    /**
      * Draw all the Relative Neighbor Graph edges.
      * @param withSites true iff drawing the site for each point
      */
@@ -554,7 +546,6 @@ class DelaunayPanel extends JPanel {
             }
         }
     }
-
     /**
      * Draw all the Euclidean Minimum Spanning Tree edges.
      */
@@ -582,6 +573,34 @@ class DelaunayPanel extends JPanel {
                 if ( dt.emstEdge(site, site3) && ! done.contains(site3)) {
                     Pnt[] vertices = { site, site3 };
                     draw(vertices, DelaunayAp.graphColors[DelaunayAp.EMST]);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Draw all the Minimum Weight Triangulation edges.
+     */
+    public void drawAllMWT (){
+
+        //CHANGE TO BE FOR MWT
+           for (Triangle triangle: dt) {
+
+            // Keep track of sites done; no drawing for initial triangles sites
+            HashSet<Pnt> done = new HashSet<Pnt>(initialTriangle);
+
+            for (Pnt site: triangle) {
+                if (done.contains(site)) continue;
+                done.add(site);
+                Pnt site2 = triangle.getVertexButNot(site); // get another vertex
+                if ( dt.emstEdge(site, site2) && ! done.contains(site2)) {
+                    Pnt[] vertices = { site, site2 };
+                    draw(vertices, DelaunayAp.graphColors[DelaunayAp.MWT]);
+                }
+                Pnt site3 = triangle.getVertexButNot(site, site2); // get another vertex
+                if ( dt.emstEdge(site, site3) && ! done.contains(site3)) {
+                    Pnt[] vertices = { site, site3 };
+                    draw(vertices, DelaunayAp.graphColors[DelaunayAp.MWT]);
                 }
             }
         }

@@ -53,6 +53,26 @@ public class Line implements Comparable {
     public double length () {
         return a.distance(b);
     }
+    
+    public boolean cross(Line initial, Line secondary)
+    {
+        //See if secondary crosses the initial line
+        Pnt[] simplex = {initial.a, initial.b, initial.b};
+        int[] i = secondary.a.relation(simplex);
+        int[] j = secondary.b.relation(simplex);
+        System.out.println("New comparison of " + initial + "and" + secondary );
+        System.out.println(i[0] + " " + i[1] + " " + i[2] + " i");
+        System.out.println(j[0] + " " + j[1] + " " + j[2] + " j");
+        
+        if (i[0] != j[0])
+            return true;
+        if (i[1] != j[1])
+            return true;
+        if (i[2] != j[2])
+            return true;
+        
+        return false;//it does not cross
+    }
 
     @Override
     public int compareTo(Object o) {

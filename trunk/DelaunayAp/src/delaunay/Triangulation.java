@@ -73,6 +73,8 @@ public class Triangulation extends AbstractSet<Triangle> {
     private Graph<Pnt> gabrielGraph;         // Holds points in Gabriel graph
     private Graph<Pnt> rnGraph;              // Holds points in RNG
     private Graph<Pnt> emstGraph;            // Holds points in Euclidean MST
+    private Graph<Pnt> mwtGraph;            // Holds points in Euclidean MST
+    private Set<Line> mwtLineSet;           // Holds candidate lines for EMST
 
     /**
      * All sites must fall within the initial triangle.
@@ -222,6 +224,10 @@ public class Triangulation extends AbstractSet<Triangle> {
     public boolean emstEdge (Pnt site1, Pnt site2) {
         return emstGraph.contains(site1, site2);
     }
+    
+    public boolean mwtEdge (Pnt site1, Pnt site2) {
+        return mwtGraph.contains(site1, site2);
+    }
 
     /**
      * Locate the triangle with point inside it or on its boundary.
@@ -277,6 +283,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         
         // Update EMST
         computeEMST();
+        computeMWT();
     }
 
     /**
@@ -311,6 +318,102 @@ public class Triangulation extends AbstractSet<Triangle> {
             System.out.println("EMST: WARNING! Missing " + (pointSet.size() - 1 - count) + " points!");
     }
 
+    public void computeMWT () {
+        // Reinit MWT graph
+        Set<Pnt> mwtPointSet = new HashSet<Pnt>();
+        
+        //Not sure why these points are in Pointset - removing them
+        Pnt badpoint = new Pnt(10000, -10000);
+        Pnt badpoint1 = new Pnt(-10000, -10000);
+        Pnt badpoint2 = new Pnt(0, 10000);
+        
+        //Get all points
+        mwtGraph = new Graph<Pnt>();
+        for(Pnt point: pointSet) {
+            if (!point.equals(badpoint) && !point.equals(badpoint1) && !point.equals(badpoint2))
+            {
+            mwtPointSet.add(point);
+            //System.out.println(point + " point for MWT");
+            }
+        }
+        
+        //Get all possible lines
+        int i = 0;
+        int j = 0;
+        mwtLineSet = new TreeSet<Line>();
+        for (Pnt point0: mwtPointSet)
+        {
+            j = 0;
+            for (Pnt point1: mwtPointSet){
+                if (i > j)
+                {
+                    mwtLineSet.add(new Line(point0, point1));
+                }
+                j++;
+            }
+            i++;
+        }
+        
+        //Show all possible edges
+        Line[] lineArray = mwtLineSet.toArray(new Line[mwtLineSet.size()]);
+        for(Line line: lineArray) {
+            //mwtGraph.add(point);
+            System.out.println(line + " possible line for MWT");
+        }
+        
+        //Print permutations of these edgelists
+        
+
+        //Add edges without overlapping
+        Set<Line> finishedMWTLineSet = new TreeSet<Line>();
+        Line[] finishedLineArray;// = mwtLineSet.toArray(new Line[mwtLineSet.size()]); 
+        boolean keepline = false;
+        
+        for (Line line: lineArray)
+        {
+            keepline = true;
+            finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
+            for (Line finishedline: finishedLineArray) //THIS IS NOT WORKING YET
+            {
+                if (line.cross(line, finishedline))
+                    keepline = false;
+            }
+            if (keepline == true)
+            {
+               finishedMWTLineSet.add(line);
+               System.out.println("Adding a line");
+            }
+        }
+        
+        //Print all the final edges
+        finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
+        for(Line line: finishedLineArray) {
+            //mwtGraph.add(point);
+            System.out.println(line + " FINAL line for MWT");
+        }
+        
+        // The disjoint set
+        //DisjointSet<Pnt> ds = new DisjointSet<Pnt>();
+
+        // The sorted array of lines
+       /* Line[] lineArray = emstLineSet.toArray(new Line[emstLineSet.size()]);
+
+        int count = 0;
+        if (emstDebug) System.out.println("EMST: need " + (pointSet.size() - 1) + " lines");
+        if (emstDebug) System.out.println("EMST: there are " + emstLineSet.size() + " lines in RNG");
+        for (int i = 0; count < pointSet.size() - 1 && i < emstLineSet.size(); i++){
+            if (emstDebug) System.out.println("EMST: considering " + lineArray[i].toString());
+            if ( ! ds.find(lineArray[i].a).equals(ds.find(lineArray[i].b)) ) {
+                count++;
+                if (emstDebug) System.out.println("EMST: adding " + count + "th edge");
+                ds.union(ds.find(lineArray[i].a), ds.find(lineArray[i].b));
+                emstGraph.add(lineArray[i].a, lineArray[i].b);
+            }
+        }
+        if (count < pointSet.size() - 1) // This should never happen!
+            System.out.println("EMST: WARNING! Missing " + (pointSet.size() - 1 - count) + " points!");*/
+    }
+    
     /**
      * Determine the cavity caused by site.
      * @param site the site causing the cavity
