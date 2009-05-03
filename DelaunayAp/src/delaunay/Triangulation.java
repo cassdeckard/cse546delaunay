@@ -455,15 +455,13 @@ public class Triangulation extends AbstractSet<Triangle> {
         for(Pnt point: pointSet) {
             if (!point.equals(badpoint) && !point.equals(badpoint1) && !point.equals(badpoint2))
             {
-            mwtPointSet.add(point);
-            mwtGraph.add(point);
-            //System.out.println(point + " point for MWT");
+               mwtPointSet.add(point);
+               mwtGraph.add(point);
             }
         }
         
         //Get all possible lines
-        int i = 0;
-        int j = 0;
+        int i = 0;  int j = 0;
         mwtLineSet = new TreeSet<Line>();
         for (Pnt point0: mwtPointSet)
         {
@@ -479,73 +477,58 @@ public class Triangulation extends AbstractSet<Triangle> {
         }
         
         //Show all possible edges
-        Line[] lineArray = mwtLineSet.toArray(new Line[mwtLineSet.size()]);
-        for(Line line: lineArray) {
-            //mwtGraph.add(point);
-            if (mwtDebug) System.out.println(line + " possible line for MWT");
-        }
-        
-        //Print permutations of these edgelists
-        
-
         //Add edges without overlapping
+        Set<Line> tempfinishedMWTLineSet = new TreeSet<Line>();
         Set<Line> finishedMWTLineSet = new TreeSet<Line>();
-        Line[] finishedLineArray;// = mwtLineSet.toArray(new Line[mwtLineSet.size()]); 
-        boolean keepline = false;
+        Line[] lineArray = mwtLineSet.toArray(new Line[mwtLineSet.size()]);
+        Line[] tempfinishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
+        Line[] finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
         
-        //int ii = 0;
-        //int jj = 0;
-        for (Line line: lineArray)
+        boolean keepline = false;
+        long lineweight = 0;
+        long finalLineWeight = 999999999;
+        
+        Set<Line[]> linePermutation = new TreeSet<Line[]>();
+        
+        //Create all permutations of lineArray... [NEEDS TO BE ADDED]
+        linePermutation.add(lineArray);  
+        
+        //Go through all permutations
+        for (Line[] linelist : linePermutation)
         {
-           // System.out.println("Comparing " +  ii);
-            //jj = 0;
-            keepline = true;
-            finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
-            for (Line finishedline: finishedLineArray) //THIS IS NOT WORKING YET
-            {
-                //System.out.println("TO  " +  jj);
-                if (line.intersects(finishedline))
-                    keepline = false;
-               // jj++;
-            }
-            if (keepline == true)
-            {
-               finishedMWTLineSet.add(line);
-               if (mwtDebug) System.out.println("Adding a line");
-            }
-           // ii++;
+           tempfinishedMWTLineSet = new TreeSet<Line>();
+           for (Line line: linelist)
+           {
+               keepline = true;
+               for (Line finishedline: tempfinishedLineArray) 
+               {
+                  if (line.intersects(finishedline))
+                      keepline = false;
+               }
+               if (keepline == true)
+               {
+                 tempfinishedMWTLineSet.add(line);
+                 lineweight = lineweight + (long)line.length();
+                 tempfinishedLineArray = tempfinishedMWTLineSet.toArray(new Line[tempfinishedMWTLineSet.size()]);
+                 //if (mwtDebug) System.out.println("Adding a line");
+               }
+           }
+           if (mwtDebug) System.out.println("Total weight of edges: " + lineweight);
+           if (lineweight < finalLineWeight)
+           {
+               finishedLineArray = tempfinishedLineArray;
+               finishedMWTLineSet = tempfinishedMWTLineSet;
+               finalLineWeight = lineweight;
+           }
         }
         
         //Print all the final edges
         finishedLineArray = finishedMWTLineSet.toArray(new Line[finishedMWTLineSet.size()]);
         for(Line line: finishedLineArray) {
-            
-            if (mwtDebug) System.out.println(line + " FINAL line for MWT");
-            //System.out.println(line.a + "  " + line.b + " vertices");
+            //if (mwtDebug) System.out.println(line + " FINAL line for MWT");
             mwtGraph.add(line.a, line.b);
         }
         finalmwtLineSet = finishedMWTLineSet;
-        
-        // The disjoint set
-        //DisjointSet<Pnt> ds = new DisjointSet<Pnt>();
-
-        // The sorted array of lines
-       /* Line[] lineArray = emstLineSet.toArray(new Line[emstLineSet.size()]);
-
-        int count = 0;
-        if (emstDebug) System.out.println("EMST: need " + (pointSet.size() - 1) + " lines");
-        if (emstDebug) System.out.println("EMST: there are " + emstLineSet.size() + " lines in RNG");
-        for (int i = 0; count < pointSet.size() - 1 && i < emstLineSet.size(); i++){
-            if (emstDebug) System.out.println("EMST: considering " + lineArray[i].toString());
-            if ( ! ds.find(lineArray[i].a).equals(ds.find(lineArray[i].b)) ) {
-                count++;
-                if (emstDebug) System.out.println("EMST: adding " + count + "th edge");
-                ds.union(ds.find(lineArray[i].a), ds.find(lineArray[i].b));
-                emstGraph.add(lineArray[i].a, lineArray[i].b);
-            }
-        }
-        if (count < pointSet.size() - 1) // This should never happen!
-            System.out.println("EMST: WARNING! Missing " + (pointSet.size() - 1 - count) + " points!");*/
     }
     
     /**
