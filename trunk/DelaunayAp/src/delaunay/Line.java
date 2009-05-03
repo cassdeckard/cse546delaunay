@@ -71,7 +71,7 @@ public class Line implements Comparable {
         int signB;
 
         // make sure orients are not zero
-        if (orientA == 0.0 || orientB == 0.0) return true;
+        if (orientA == 0.0 || orientB == 0.0) return false;
 
         // see if they're on same side of testLine
         signA = (orientA > 0.0) ? 1 : -1;
@@ -83,7 +83,7 @@ public class Line implements Comparable {
         orientB = this.orient(testLine.b);
 
         // make sure orients are not zero
-        if (orientA == 0.0 || orientB == 0.0) return true;
+        if (orientA == 0.0 || orientB == 0.0) return false;
 
         // see if they're on same side of testLine
         signA = orientA > 0.0 ? 1 : -1;

@@ -53,6 +53,7 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.*;
 
+
 /**
  * The Delauany applet.
  *
@@ -68,6 +69,7 @@ import javax.swing.*;
  * DelaunayPanel. Added code to find a Voronoi cell.
  *
  */
+
 @SuppressWarnings("serial")
 public class DelaunayAp extends javax.swing.JApplet
         implements Runnable, ActionListener, MouseListener {
@@ -266,6 +268,16 @@ public class DelaunayAp extends javax.swing.JApplet
             }
         }
         delaunayPanel.repaint();
+        
+        if (delaunayPanel.numPoints >= delaunayPanel.numMWTPointsAllowed)
+        {
+            graphSwitches[MWT].setEnabled(false);
+            graphSwitches[MWT].setSelected(false);
+        }
+        else
+        {
+            graphSwitches[MWT].setEnabled(true);
+        }
     }
 
     /**
@@ -293,6 +305,11 @@ public class DelaunayAp extends javax.swing.JApplet
     public boolean showingGraph(int graph) {
         return graphSwitches[graph].isSelected();
     }
+    
+    public boolean calculateMWT()
+    {
+        return graphSwitches[MWT].isSelected();
+    }
 }
 
 /**
@@ -312,6 +329,8 @@ class DelaunayPanel extends JPanel
     private Graphics g;                         // Stored graphics context
     private Random random = new Random();       // Source of random numbers
     private Pnt selectedSite;
+    public int numPoints = 0;
+    public int numMWTPointsAllowed = 10;
 
     /**
      * Create and initialize the DT.
@@ -361,6 +380,7 @@ class DelaunayPanel extends JPanel
      */
     public void addSite(Pnt point) {
         dt.delaunayPlace(point);
+        numPoints++;
     }
 
 
@@ -386,6 +406,7 @@ class DelaunayPanel extends JPanel
      */
     public void removeSite(Pnt point) {
         dt.delaunayRemove(point);
+        numPoints--;
     }
 
     /**
@@ -393,6 +414,7 @@ class DelaunayPanel extends JPanel
      */
     public void clear() {
         dt.clear();
+        numPoints = 0;
     }
 
     /**
@@ -544,8 +566,10 @@ class DelaunayPanel extends JPanel
             drawAllRNGLenses();
         if (controller.showingGraph(DelaunayAp.EMST))
             drawAllEMST();
-        if (controller.showingGraph(DelaunayAp.MWT))
+        if (controller.showingGraph(DelaunayAp.MWT) && (numPoints < numMWTPointsAllowed))
+        {
             drawAllMWT();
+        }       
 
         // Now, draw the points
         drawAllPoints();
@@ -669,11 +693,10 @@ class DelaunayPanel extends JPanel
      * Draw all the Minimum Weight Triangulation edges.
      */
     public void drawAllMWT (){
-
-        //CHANGE TO BE FOR MWT
+        
         for (Line line : dt.finalmwtLineSet)
         {
-            Pnt[] vertices = { line.a, line.b };
+            Pnt[] vertices = {line.a, line.b};
             draw(vertices, DelaunayAp.graphColors[DelaunayAp.MWT]);
         }
         /*   for (Triangle triangle: dt) {
