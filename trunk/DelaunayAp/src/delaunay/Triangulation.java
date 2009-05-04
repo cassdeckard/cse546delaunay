@@ -491,6 +491,7 @@ public class Triangulation extends AbstractSet<Triangle> {
         Set<Line[]> linePermutation = new TreeSet<Line[]>();
         
         //Create all permutations of lineArray... [NEEDS TO BE ADDED]
+        java.util.Arrays.sort(lineArray);
         linePermutation.add(lineArray);  
         
         //Go through all permutations
